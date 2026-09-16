@@ -1,0 +1,28 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--color-bg-secondary);
+}
+
+/* Main content area — flex:1 fills remaining space next to sidebar */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* When sidebar is fixed, push main content to avoid overlap */
+  /* The sidebar handles its own width via CSS; we use padding-left on body or overflow hidden */
+  overflow: hidden;
+}
+
+/* Page content below header */
+.content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
+}
