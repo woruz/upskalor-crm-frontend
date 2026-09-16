@@ -1,5 +1,7 @@
 export const ROUTES = {
   HOME: '/',
+  LEADS: '/leads',
+  LEAD_DETAILS: '/leads/:id',
   LOGIN: '/login',
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
@@ -7,6 +9,7 @@ export const ROUTES = {
   PROFILE: '/profile',
   SETTINGS: '/settings',
 } as const;
+
 
 export const PUBLIC_ROUTES = [ROUTES.HOME] as const;
 

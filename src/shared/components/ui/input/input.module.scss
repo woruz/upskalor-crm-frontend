@@ -97,6 +97,27 @@
   right: var(--spacing-sm);
 }
 
+.clear-btn {
+  all: unset;
+  position: absolute;
+  right: var(--spacing-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-tertiary);
+  }
+}
+
 .error {
   font-size: 0.75rem;
   color: var(--color-error);

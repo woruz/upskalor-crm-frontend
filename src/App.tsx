@@ -5,8 +5,11 @@ import { ProtectedRoute } from '@/shared/components/providers/ProtectedRoute';
 import { PageLoader } from '@/shared/components/ui/pageLoader/pageLoader';
 
 // Route-level code splitting: each page ships as its own lazily-loaded chunk.
-const HomePage = lazy(() =>
-  import('@/pages/home/home').then((m) => ({ default: m.HomePage })),
+const LeadsPage = lazy(() =>
+  import('@/pages/leads/leads').then((m) => ({ default: m.LeadsPage })),
+);
+const LeadDetailPage = lazy(() =>
+  import('@/pages/leads/leadDetail').then((m) => ({ default: m.LeadDetailPage })),
 );
 const LoginPage = lazy(() =>
   import('@/pages/auth/login/login').then((m) => ({ default: m.LoginPage })),
@@ -22,7 +25,12 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path={ROUTES.HOME} element={<HomePage />} />
+          {/* Redirect root to /leads */}
+          <Route path={ROUTES.HOME} element={<Navigate to={ROUTES.LEADS} replace />} />
+
+          {/* Leads page – public for demo purposes */}
+          <Route path={ROUTES.LEADS} element={<LeadsPage />} />
+          <Route path={ROUTES.LEAD_DETAILS} element={<LeadDetailPage />} />
 
           <Route
             path={ROUTES.LOGIN}
@@ -42,7 +50,7 @@ export default function App() {
             }
           />
 
-          <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+          <Route path="*" element={<Navigate to={ROUTES.LEADS} replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
