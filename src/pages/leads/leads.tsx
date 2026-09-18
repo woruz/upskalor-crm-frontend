@@ -9,6 +9,7 @@ import { Pagination } from '@/shared/components/ui/pagination/pagination';
 import { Dropdown } from '@/shared/components/ui/dropdown';
 import { Kanban, type KanbanColumn } from '@/shared/components/ui/kanban';
 import { AppLayout } from '@/shared/components/ui/appLayout/appLayout';
+import { useAuth } from '@/shared/lib/hooks/useAuth';
 import { AddLeadModal } from './addLeadModal';
 import styles from './leads.module.scss';
 
@@ -264,8 +265,11 @@ const statusVariant = (status: string) => {
 // ─── Page component ───────────────────────────────────────────────────────────
 
 export function LeadsPage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { addToast } = useToast();
+
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
 
   const [leads, setLeads] = useState<LeadItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -538,8 +542,8 @@ export function LeadsPage() {
       headerProps={{
         title: 'Leads',
         breadcrumbs: [{ label: 'CRM' }, { label: 'Leads' }],
-        userName: 'Amit Verma',
-        userRole: 'Sales Executive',
+        userName: fullName || user?.email || 'User',
+        userRole: user?.role || 'user',
         notificationCount: 5,
       }}
     >

@@ -4,6 +4,7 @@ import { AppLayout } from '@/shared/components/ui/appLayout/appLayout';
 import { LeadCard } from '@/shared/components/ui/leadCard';
 import { Button } from '@/shared/components/ui/button';
 import { useToast } from '@/shared/components/ui/toast/toast';
+import { useAuth } from '@/shared/lib/hooks/useAuth';
 import styles from './leadDetail.module.scss';
 
 interface SurveyItem {
@@ -98,9 +99,12 @@ const TECHNICIANS = [
 ];
 
 export const LeadDetailPage: React.FC = () => {
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToast } = useToast();
+
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
 
   const [lead, setLead] = useState<LeadDetailData>(() => {
     if (id && LEADS_DATABASE[id]) {
@@ -201,7 +205,7 @@ export const LeadDetailPage: React.FC = () => {
     const newNote: NoteItem = {
       id: `n-${Date.now()}`,
       text: noteContent.trim(),
-      author: 'Amit Verma',
+      author: fullName || user?.email || 'User',
       createdAt: 'Just now',
     };
 
@@ -227,8 +231,8 @@ export const LeadDetailPage: React.FC = () => {
           { label: 'Leads' },
           { label: lead.customerName },
         ],
-        userName: 'Amit Verma',
-        userRole: 'Sales Executive',
+        userName: fullName || user?.email || 'User',
+        userRole: user?.role || 'user',
         notificationCount: 5,
       }}
     >

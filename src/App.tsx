@@ -14,6 +14,11 @@ const LeadDetailPage = lazy(() =>
 const LoginPage = lazy(() =>
   import('@/pages/auth/login/login').then((m) => ({ default: m.LoginPage })),
 );
+const RegisterPage = lazy(() =>
+  import('@/pages/auth/register/register').then((m) => ({
+    default: m.RegisterPage,
+  })),
+);
 const DashboardPage = lazy(() =>
   import('@/pages/dashboard/dashboard').then((m) => ({
     default: m.DashboardPage,
@@ -25,18 +30,48 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Redirect root to /leads */}
-          <Route path={ROUTES.HOME} element={<Navigate to={ROUTES.LEADS} replace />} />
+          {/* Root route: redirects to /dashboard if logged in, or /login if not */}
+          <Route
+            path={ROUTES.HOME}
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* Leads page – public for demo purposes */}
-          <Route path={ROUTES.LEADS} element={<LeadsPage />} />
-          <Route path={ROUTES.LEAD_DETAILS} element={<LeadDetailPage />} />
+          {/* Protected CRM routes – require authentication */}
+          <Route
+            path={ROUTES.LEADS}
+            element={
+              <ProtectedRoute>
+                <LeadsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.LEAD_DETAILS}
+            element={
+              <ProtectedRoute>
+                <LeadDetailPage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path={ROUTES.LOGIN}
             element={
               <ProtectedRoute requireAuth={false} redirectTo={ROUTES.DASHBOARD}>
                 <LoginPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path={ROUTES.REGISTER}
+            element={
+              <ProtectedRoute requireAuth={false} redirectTo={ROUTES.DASHBOARD}>
+                <RegisterPage />
               </ProtectedRoute>
             }
           />
@@ -50,7 +85,7 @@ export default function App() {
             }
           />
 
-          <Route path="*" element={<Navigate to={ROUTES.LEADS} replace />} />
+          <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
