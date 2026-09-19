@@ -4,6 +4,7 @@ import { Sidebar } from '@/shared/components/ui/sidebar';
 import { Header } from '@/shared/components/ui/header';
 import { APP_NAV_ITEMS } from '@/shared/lib/config/navItems';
 import { useAuth } from '@/shared/lib/hooks/useAuth';
+import { usePermissions } from '@/shared/lib/hooks/usePermissions';
 import { ROUTES } from '@/shared/lib/config/routes';
 import type { HeaderProps } from '@/shared/components/ui/header/header.types';
 import styles from './appLayout.module.scss';
@@ -16,6 +17,7 @@ export interface AppLayoutProps {
 
 export function AppLayout({ children, headerProps }: AppLayoutProps) {
   const { user, logout } = useAuth();
+  const { hasPermission } = usePermissions();
   const navigate = useNavigate();
 
   const handleLogout = useCallback(async () => {
@@ -28,9 +30,15 @@ export function AppLayout({ children, headerProps }: AppLayoutProps) {
 
   const authorizedNavItems = useMemo(() => {
     return APP_NAV_ITEMS.filter((item) => {
-      if (!item.roles || item.roles.length === 0) return true;
-      if (!user?.role) return false;
-      return item.roles.includes(user.role);
+      // 1. Static role filter (e.g. ['super_admin'] for User Management)
+      if (item.roles && item.roles.length > 0) {
+        if (!user?.role || !item.roles.includes(user.role)) return false;
+      }
+      // 2. Dynamic resource permission filter (e.g. 'quotations', 'leads', 'reports')
+      if (item.resource) {
+        if (!hasPermission(item.resource, (item.action as any) || 'read')) return false;
+      }
+      return true;
     }).map((item) => {
       if (item.key === 'logout') {
         return {
@@ -40,7 +48,7 @@ export function AppLayout({ children, headerProps }: AppLayoutProps) {
       }
       return item;
     });
-  }, [user?.role, handleLogout]);
+  }, [user?.role, hasPermission, handleLogout]);
 
   return (
     <div className={styles.layout}>

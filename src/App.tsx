@@ -79,7 +79,7 @@ export default function App() {
           <Route
             path={ROUTES.QUOTATIONS}
             element={
-              <ProtectedRoute>
+              <ProtectedRoute resource="quotations">
                 <QuotationsPage />
               </ProtectedRoute>
             }
@@ -87,7 +87,7 @@ export default function App() {
           <Route
             path={ROUTES.CREATE_QUOTATION}
             element={
-              <ProtectedRoute>
+              <ProtectedRoute resource="quotations">
                 <CreateQuotationPage />
               </ProtectedRoute>
             }
@@ -95,7 +95,7 @@ export default function App() {
           <Route
             path={ROUTES.QUOTATION_DETAILS}
             element={
-              <ProtectedRoute>
+              <ProtectedRoute resource="quotations">
                 <QuotationDetailPage />
               </ProtectedRoute>
             }
@@ -103,7 +103,7 @@ export default function App() {
           <Route
             path={ROUTES.USERS}
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['super_admin']}>
                 <UserManagementPage />
               </ProtectedRoute>
             }
@@ -132,6 +132,72 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Unimplemented placeholder routes – redirect directly to Dashboard */}
+          <Route
+            path="/kanban"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kanban/*"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/*"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.SETTINGS}
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/*"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.PROFILE}
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/*"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
               </ProtectedRoute>
             }
           />
