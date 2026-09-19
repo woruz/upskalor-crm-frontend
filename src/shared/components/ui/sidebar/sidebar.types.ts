@@ -15,6 +15,10 @@ export interface SidebarNavItem {
   badge?: number | string;
   /** Divider before this item */
   dividerBefore?: boolean;
+  /** Roles permitted to see this item */
+  roles?: string[];
+  /** Optional click handler (for actions like logout) */
+  onClick?: () => void;
 }
 
 export interface SidebarProps {

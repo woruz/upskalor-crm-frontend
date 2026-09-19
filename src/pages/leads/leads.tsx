@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/shared/components/ui/button/button';
 import { Badge } from '@/shared/components/ui/badge/badge';
@@ -11,169 +11,16 @@ import { Kanban, type KanbanColumn } from '@/shared/components/ui/kanban';
 import { AppLayout } from '@/shared/components/ui/appLayout/appLayout';
 import { useAuth } from '@/shared/lib/hooks/useAuth';
 import { AddLeadModal } from './addLeadModal';
+import { ImportLeadsModal } from './importLeadsModal';
+import { ExportLeadsModal } from './exportLeadsModal';
+import {
+  listLeads,
+  updateLeadStatus,
+  deleteLead,
+} from '@/shared/lib/api/leadsApi';
+import { extractApiError } from '@/shared/lib/api/authApi';
+import type { Lead, LeadStatus, PaginationInfo } from '@/shared/lib/types';
 import styles from './leads.module.scss';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type LeadStatus =
-  | 'New'
-  | 'Contacted'
-  | 'Survey Scheduled'
-  | 'Quote Sent'
-  | 'Negotiation'
-  | 'Won'
-  | 'Lost'
-  | 'Junk';
-
-export interface LeadItem {
-  id: string;
-  customerName: string;
-  phone: string;
-  followUp: string;
-  status: LeadStatus;
-  billAmount: number;
-  state: string;
-  city: string;
-  source: string;
-  executive: string;
-}
-
-// ─── Dummy data ───────────────────────────────────────────────────────────────
-
-const INITIAL_LEADS: LeadItem[] = [
-  {
-    id: '1',
-    customerName: 'Fuzen',
-    phone: '919876543210',
-    followUp: 'Jul 01, 2026',
-    status: 'New',
-    billAmount: 10000,
-    state: 'Jharkhand',
-    city: 'Ranchi',
-    source: 'Website',
-    executive: 'Amit Verma',
-  },
-  {
-    id: '2',
-    customerName: 'Rahul Desai',
-    phone: '919876543211',
-    followUp: 'Jul 01, 2026',
-    status: 'New',
-    billAmount: 3500,
-    state: 'Maharashtra',
-    city: 'Mumbai',
-    source: 'Referral',
-    executive: 'Pooja Sharma',
-  },
-  {
-    id: '3',
-    customerName: 'Sham',
-    phone: '919876543212',
-    followUp: 'Aug 29, 2026',
-    status: 'Contacted',
-    billAmount: 1000,
-    state: 'Maharashtra',
-    city: 'Pune',
-    source: 'Website',
-    executive: 'Amit Verma',
-  },
-  {
-    id: '4',
-    customerName: 'Suresh',
-    phone: '919876543213',
-    followUp: 'Jun 30, 2026',
-    status: 'Quote Sent',
-    billAmount: 5000,
-    state: 'Maharashtra',
-    city: 'Mumbai',
-    source: 'Campaign',
-    executive: 'Pooja Sharma',
-  },
-  {
-    id: '5',
-    customerName: 'Arun Sharma',
-    phone: '919876543214',
-    followUp: 'Jul 01, 2026',
-    status: 'Survey Scheduled',
-    billAmount: 3000,
-    state: 'Maharashtra',
-    city: 'Pune',
-    source: 'Referral',
-    executive: 'Amit Verma',
-  },
-  {
-    id: '6',
-    customerName: 'Priya Nair',
-    phone: '919876543215',
-    followUp: 'Sep 10, 2026',
-    status: 'New',
-    billAmount: 7500,
-    state: 'Karnataka',
-    city: 'Bangalore',
-    source: 'Website',
-    executive: 'Pooja Sharma',
-  },
-  {
-    id: '7',
-    customerName: 'Vikram Singh',
-    phone: '919876543216',
-    followUp: 'Sep 12, 2026',
-    status: 'Contacted',
-    billAmount: 12000,
-    state: 'Delhi',
-    city: 'New Delhi',
-    source: 'Campaign',
-    executive: 'Amit Verma',
-  },
-  {
-    id: '8',
-    customerName: 'Meera Joshi',
-    phone: '919876543217',
-    followUp: 'Sep 15, 2026',
-    status: 'Negotiation',
-    billAmount: 18000,
-    state: 'Gujarat',
-    city: 'Ahmedabad',
-    source: 'Referral',
-    executive: 'Amit Verma',
-  },
-  {
-    id: '9',
-    customerName: 'Deepak Rao',
-    phone: '919876543218',
-    followUp: 'Sep 18, 2026',
-    status: 'Won',
-    billAmount: 25000,
-    state: 'Tamil Nadu',
-    city: 'Chennai',
-    source: 'Website',
-    executive: 'Pooja Sharma',
-  },
-  {
-    id: '10',
-    customerName: 'Kavita Patel',
-    phone: '919876543219',
-    followUp: 'Sep 20, 2026',
-    status: 'Lost',
-    billAmount: 8000,
-    state: 'Rajasthan',
-    city: 'Jaipur',
-    source: 'Campaign',
-    executive: 'Amit Verma',
-  },
-  {
-    id: '11',
-    customerName: 'Ravi Kumar',
-    phone: '919876543220',
-    followUp: 'Sep 22, 2026',
-    status: 'Junk',
-    billAmount: 500,
-    state: 'Uttar Pradesh',
-    city: 'Lucknow',
-    source: 'Website',
-    executive: 'Pooja Sharma',
-  },
-];
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -233,32 +80,43 @@ const LocationIcon = () => (
   </svg>
 );
 
-// ─── Kanban columns ───────────────────────────────────────────────────────────
+// ─── Kanban columns matching Backend Enum ────────────────────────────────────
 
 const KANBAN_COLUMNS: KanbanColumn[] = [
-  { id: 'New', title: 'NEW' },
-  { id: 'Contacted', title: 'CONTACTED' },
-  { id: 'Survey Scheduled', title: 'SURVEY SCHEDULED' },
-  { id: 'Quote Sent', title: 'QUOTE SENT' },
-  { id: 'Negotiation', title: 'NEGOTIATION' },
-  { id: 'Won', title: 'WON' },
-  { id: 'Lost', title: 'LOST' },
-  { id: 'Junk', title: 'JUNK' },
+  { id: 'NEW', title: 'NEW' },
+  { id: 'CONTACTED', title: 'CONTACTED' },
+  { id: 'FOLLOW_UP', title: 'FOLLOW UP' },
+  { id: 'INTERESTED', title: 'INTERESTED' },
+  { id: 'NOT_INTERESTED', title: 'NOT INTERESTED' },
+  { id: 'CONVERTED', title: 'CONVERTED' },
+  { id: 'LOST', title: 'LOST' },
 ];
 
 // ─── Status badge variant map ─────────────────────────────────────────────────
 
-const statusVariant = (status: string) => {
+const statusVariant = (status: LeadStatus | string) => {
   switch (status) {
-    case 'New':              return 'primary'   as const;
-    case 'Contacted':        return 'info'      as const;
-    case 'Survey Scheduled': return 'warning'   as const;
-    case 'Quote Sent':       return 'info'      as const;
-    case 'Negotiation':      return 'warning'   as const;
-    case 'Won':              return 'success'   as const;
-    case 'Lost':             return 'error'     as const;
-    case 'Junk':             return 'secondary' as const;
-    default:                 return 'secondary' as const;
+    case 'NEW':            return 'primary'   as const;
+    case 'CONTACTED':      return 'info'      as const;
+    case 'FOLLOW_UP':      return 'warning'   as const;
+    case 'INTERESTED':     return 'warning'   as const;
+    case 'NOT_INTERESTED': return 'secondary' as const;
+    case 'CONVERTED':      return 'success'   as const;
+    case 'LOST':           return 'error'     as const;
+    default:               return 'secondary' as const;
+  }
+};
+
+const formatStatusLabel = (status: LeadStatus | string): string => {
+  switch (status) {
+    case 'NEW':            return 'New';
+    case 'CONTACTED':      return 'Contacted';
+    case 'FOLLOW_UP':      return 'Follow Up';
+    case 'INTERESTED':     return 'Interested';
+    case 'NOT_INTERESTED': return 'Not Interested';
+    case 'CONVERTED':      return 'Converted';
+    case 'LOST':           return 'Lost';
+    default:               return String(status);
   }
 };
 
@@ -271,97 +129,154 @@ export function LeadsPage() {
 
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
 
-  const [leads, setLeads] = useState<LeadItem[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 1,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [isCompact, setIsCompact] = useState(false);
   const [page, setPage] = useState(1);
+
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [stateFilter, setStateFilter] = useState('all');
-  const [executiveFilter, setExecutiveFilter] = useState('all');
+
+  // Debounce search input
+  const searchTimeoutRef = useRef<number | null>(null);
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (searchTimeoutRef.current) {
+      window.clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = window.setTimeout(() => {
+      setDebouncedSearch(val);
+      setPage(1);
+    }, 350);
+  };
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
-  const fetchLeads = useCallback(() => {
+  const fetchLeads = useCallback(async () => {
     setIsLoading(true);
-    const t = setTimeout(() => {
-      setLeads(INITIAL_LEADS);
+    try {
+      const response = await listLeads({
+        page,
+        limit: viewMode === 'kanban' ? 100 : 20,
+        search: debouncedSearch.trim() || undefined,
+        status: statusFilter !== 'all' ? (statusFilter as LeadStatus) : undefined,
+        leadSource: sourceFilter !== 'all' ? sourceFilter : undefined,
+        state: stateFilter !== 'all' ? stateFilter : undefined,
+        sort: 'createdAt',
+        direction: 'desc',
+      });
+
+      setLeads(response.data || []);
+      if (response.pagination) {
+        setPagination(response.pagination);
+      }
+    } catch (error) {
+      const msg = extractApiError(error);
+      addToast({
+        title: 'Failed to fetch leads',
+        description: msg,
+        variant: 'error',
+      });
+    } finally {
       setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(t);
-  }, []);
+    }
+  }, [page, viewMode, debouncedSearch, statusFilter, sourceFilter, stateFilter, addToast]);
 
   useEffect(() => {
-    return fetchLeads();
+    fetchLeads();
   }, [fetchLeads]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  const handleImport = () =>
-    addToast({ title: 'Import Leads', description: 'Opening import dialog…', variant: 'info' });
-
-  const handleExport = () =>
-    addToast({ title: 'Export Leads', description: `Exporting ${filteredLeads.length} leads to CSV…`, variant: 'success' });
-
+  const handleImport = () => setIsImportOpen(true);
+  const handleExport = () => setIsExportOpen(true);
   const handleNewLead = () => setIsModalOpen(true);
 
-  const handleSaveLead = (lead: Omit<LeadItem, 'id'>) => {
-    const newLead: LeadItem = { id: String(Date.now()), ...lead };
-    setLeads((prev) => [newLead, ...prev]);
-    addToast({
-      title: 'Lead Created',
-      description: `"${newLead.customerName}" added successfully`,
-      variant: 'success',
-    });
+  const handleDeleteLead = async (id: string, name: string) => {
+    try {
+      await deleteLead(id);
+      setLeads((prev) => prev.filter((l) => l.id !== id));
+      addToast({
+        title: 'Lead Deleted',
+        description: `${name} has been removed.`,
+        variant: 'success',
+      });
+    } catch (error) {
+      const msg = extractApiError(error);
+      addToast({
+        title: 'Delete Failed',
+        description: msg,
+        variant: 'error',
+      });
+    }
   };
 
-  const handleDeleteLead = (id: string, name: string) => {
-    setLeads((prev) => prev.filter((l) => l.id !== id));
-    addToast({ title: 'Lead Deleted', description: `${name} has been removed.`, variant: 'error' });
+  const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
+    const originalLead = leads.find((l) => l.id === leadId);
+    if (!originalLead || originalLead.status === newStatus) return;
+
+    // Optimistic UI update
+    setLeads((prev) =>
+      prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)),
+    );
+
+    try {
+      await updateLeadStatus(leadId, newStatus);
+      addToast({
+        title: 'Status Updated',
+        description: `Moved "${originalLead.customerName}" to ${formatStatusLabel(newStatus)}.`,
+        variant: 'success',
+      });
+    } catch (error) {
+      // Revert optimistic update
+      setLeads((prev) =>
+        prev.map((l) => (l.id === leadId ? { ...l, status: originalLead.status } : l)),
+      );
+      const msg = extractApiError(error);
+      addToast({
+        title: 'Status Update Failed',
+        description: msg,
+        variant: 'error',
+      });
+    }
   };
 
-  // ── Filtering ──────────────────────────────────────────────────────────────
+  // ── Filtering helpers ──────────────────────────────────────────────────────
 
   const hasActiveFilters =
-    statusFilter !== 'all' || sourceFilter !== 'all' ||
-    stateFilter !== 'all' || executiveFilter !== 'all' ||
+    statusFilter !== 'all' ||
+    sourceFilter !== 'all' ||
+    stateFilter !== 'all' ||
     searchQuery.trim() !== '';
 
   const resetFilters = () => {
     setStatusFilter('all');
     setSourceFilter('all');
     setStateFilter('all');
-    setExecutiveFilter('all');
     setSearchQuery('');
+    setDebouncedSearch('');
+    setPage(1);
   };
-
-  const filteredLeads = leads.filter((l) => {
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      if (
-        !l.customerName.toLowerCase().includes(q) &&
-        !l.state.toLowerCase().includes(q) &&
-        !l.city.toLowerCase().includes(q) &&
-        !l.phone.includes(q) &&
-        !l.source.toLowerCase().includes(q)
-      )
-        return false;
-    }
-    if (statusFilter !== 'all' && l.status !== statusFilter) return false;
-    if (sourceFilter !== 'all' && l.source !== sourceFilter) return false;
-    if (stateFilter !== 'all' && l.state.toLowerCase() !== stateFilter.toLowerCase()) return false;
-    if (executiveFilter !== 'all' && l.executive !== executiveFilter) return false;
-    return true;
-  });
 
   // ── Table columns ──────────────────────────────────────────────────────────
 
-  const columns: Column<LeadItem>[] = [
+  const columns: Column<Lead>[] = [
     {
       key: 'customerName',
       header: 'CUSTOMER NAME',
@@ -370,26 +285,29 @@ export function LeadsPage() {
       render: (_, row) => (
         <div className={styles.customerCell}>
           <span className={styles.customerName}>{row.customerName}</span>
-          <a
-            href={`https://wa.me/${row.phone}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.waIcon}
-            title={`WhatsApp ${row.customerName}`}
-            onClick={(e) => e.stopPropagation()}
-            aria-label={`Chat with ${row.customerName} on WhatsApp`}
-          >
-            <WhatsAppIcon />
-          </a>
+          {row.mobileNumber && (
+            <a
+              href={`https://wa.me/${row.mobileNumber.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.waIcon}
+              title={`WhatsApp ${row.customerName}`}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Chat with ${row.customerName} on WhatsApp`}
+            >
+              <WhatsAppIcon />
+            </a>
+          )}
         </div>
       ),
     },
     {
-      key: 'followUp',
+      key: 'followUpDate',
       header: 'FOLLOW-UP',
       sortable: true,
       minWidth: '130px',
-      accessor: 'followUp',
+      render: (val) =>
+        val ? new Date(val).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '-',
     },
     {
       key: 'status',
@@ -398,37 +316,37 @@ export function LeadsPage() {
       minWidth: '150px',
       render: (value) => (
         <Badge variant={statusVariant(value)} pill>
-          {value}
+          {formatStatusLabel(value)}
         </Badge>
       ),
     },
     {
-      key: 'billAmount',
+      key: 'monthlyBillAmount',
       header: 'BILL AMOUNT',
       sortable: true,
       minWidth: '130px',
-      render: (val: number) => `₹${val.toLocaleString('en-IN')}`,
+      render: (val: number) => (val ? `₹${val.toLocaleString('en-IN')}` : '-'),
     },
     {
       key: 'state',
       header: 'STATE',
       sortable: true,
       minWidth: '130px',
-      accessor: 'state',
+      render: (val) => val || '-',
     },
     {
-      key: 'source',
+      key: 'leadSource',
       header: 'SOURCE',
       sortable: true,
       minWidth: '120px',
-      accessor: 'source',
+      render: (val) => val || '-',
     },
     {
-      key: 'executive',
+      key: 'assignedExecutive',
       header: 'EXECUTIVE',
       sortable: true,
       minWidth: '150px',
-      accessor: 'executive',
+      render: (val) => (val ? 'Assigned' : 'Unassigned'),
     },
     {
       key: 'actions',
@@ -464,7 +382,7 @@ export function LeadsPage() {
     },
   ];
 
-  // ── Filter bar (shared between table and kanban) ───────────────────────────
+  // ── Filter bar ─────────────────────────────────────────────────────────────
 
   const filterBar = (
     <div className={styles.filterBar}>
@@ -477,53 +395,54 @@ export function LeadsPage() {
         size="sm"
         inline
         value={statusFilter}
-        onChange={(v) => setStatusFilter(String(v))}
+        onChange={(v) => {
+          setStatusFilter(String(v));
+          setPage(1);
+        }}
         options={[
-          { label: 'All Statuses',       value: 'all' },
-          { label: 'New',                value: 'New' },
-          { label: 'Contacted',          value: 'Contacted' },
-          { label: 'Survey Scheduled',   value: 'Survey Scheduled' },
-          { label: 'Quote Sent',         value: 'Quote Sent' },
-          { label: 'Negotiation',        value: 'Negotiation' },
-          { label: 'Won',                value: 'Won' },
-          { label: 'Lost',               value: 'Lost' },
-          { label: 'Junk',               value: 'Junk' },
+          { label: 'All Statuses',   value: 'all' },
+          { label: 'New',            value: 'NEW' },
+          { label: 'Contacted',      value: 'CONTACTED' },
+          { label: 'Follow Up',      value: 'FOLLOW_UP' },
+          { label: 'Interested',     value: 'INTERESTED' },
+          { label: 'Not Interested', value: 'NOT_INTERESTED' },
+          { label: 'Converted',      value: 'CONVERTED' },
+          { label: 'Lost',           value: 'LOST' },
         ]}
       />
       <Dropdown
         size="sm"
         inline
         value={sourceFilter}
-        onChange={(v) => setSourceFilter(String(v))}
+        onChange={(v) => {
+          setSourceFilter(String(v));
+          setPage(1);
+        }}
         options={[
           { label: 'All Sources', value: 'all' },
           { label: 'Website', value: 'Website' },
           { label: 'Referral', value: 'Referral' },
           { label: 'Campaign', value: 'Campaign' },
+          { label: 'Cold Call', value: 'Cold Call' },
+          { label: 'Direct Referral', value: 'Direct Referral' },
         ]}
       />
       <Dropdown
         size="sm"
         inline
         value={stateFilter}
-        onChange={(v) => setStateFilter(String(v))}
+        onChange={(v) => {
+          setStateFilter(String(v));
+          setPage(1);
+        }}
         options={[
           { label: 'All States', value: 'all' },
-          { label: 'Jharkhand', value: 'Jharkhand' },
           { label: 'Maharashtra', value: 'Maharashtra' },
-          { label: 'Karnataka', value: 'Karnataka' },
           { label: 'Delhi', value: 'Delhi' },
-        ]}
-      />
-      <Dropdown
-        size="sm"
-        inline
-        value={executiveFilter}
-        onChange={(v) => setExecutiveFilter(String(v))}
-        options={[
-          { label: 'All Executives', value: 'all' },
-          { label: 'Amit Verma', value: 'Amit Verma' },
-          { label: 'Pooja Sharma', value: 'Pooja Sharma' },
+          { label: 'Karnataka', value: 'Karnataka' },
+          { label: 'Jharkhand', value: 'Jharkhand' },
+          { label: 'Gujarat', value: 'Gujarat' },
+          { label: 'Tamil Nadu', value: 'Tamil Nadu' },
         ]}
       />
 
@@ -588,12 +507,6 @@ export function LeadsPage() {
                 {isCompact ? 'Normal View' : 'Compact'}
               </Button>
             )}
-
-            {leads.length < INITIAL_LEADS.length && (
-              <Button variant="ghost" size="sm" onClick={() => setLeads(INITIAL_LEADS)}>
-                Restore Leads
-              </Button>
-            )}
           </div>
 
           {/* Right: search + actions */}
@@ -601,10 +514,13 @@ export function LeadsPage() {
             <div className={styles.searchWrap}>
               <SearchInput
                 size="sm"
-                placeholder="Search leads…"
+                placeholder="Search name, phone, email…"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onClear={() => setSearchQuery('')}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onClear={() => {
+                  setSearchQuery('');
+                  setDebouncedSearch('');
+                }}
               />
             </div>
 
@@ -630,15 +546,12 @@ export function LeadsPage() {
           <div className={styles.kanbanWrapper}>
             {filterBar}
 
-            <Kanban<LeadItem>
+            <Kanban<Lead>
               columns={KANBAN_COLUMNS}
-              data={filteredLeads}
+              data={leads}
               columnKey="status"
               onCardMove={(item, toColumnId) => {
-                setLeads((prev) =>
-                  prev.map((l) => l.id === item.id ? { ...l, status: toColumnId as LeadItem['status'] } : l),
-                );
-                addToast({ title: 'Lead Moved', description: `Moved "${item.customerName}" to ${toColumnId}`, variant: 'success' });
+                handleStatusChange(item.id, toColumnId as LeadStatus);
               }}
               renderCard={(lead) => (
                 <div className={styles.kanbanCard}>
@@ -646,22 +559,27 @@ export function LeadsPage() {
                   <div className={styles.cardHeader}>
                     <div className={styles.cardTitleRow}>
                       <span className={styles.cardName}>{lead.customerName}</span>
-                      <a
-                        href={`https://wa.me/${lead.phone}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={styles.cardWa}
-                        title="WhatsApp"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <WhatsAppIcon />
-                      </a>
+                      {lead.mobileNumber && (
+                        <a
+                          href={`https://wa.me/${lead.mobileNumber.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.cardWa}
+                          title="WhatsApp"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <WhatsAppIcon />
+                        </a>
+                      )}
                     </div>
                     <button
                       type="button"
                       className={styles.cardDelete}
                       title="Delete"
-                      onClick={(e) => { e.stopPropagation(); handleDeleteLead(lead.id, lead.customerName); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteLead(lead.id, lead.customerName);
+                      }}
                       aria-label={`Delete ${lead.customerName}`}
                     >
                       <TrashIcon />
@@ -671,14 +589,18 @@ export function LeadsPage() {
                   {/* Row 2: amount */}
                   <div className={styles.cardAmount}>
                     <span className={styles.lightningIcon}><LightningIcon /></span>
-                    <span>₹{lead.billAmount.toLocaleString('en-IN')} / mo</span>
+                    <span>
+                      {lead.monthlyBillAmount
+                        ? `₹${lead.monthlyBillAmount.toLocaleString('en-IN')} / mo`
+                        : 'No bill amount'}
+                    </span>
                   </div>
 
                   {/* Row 3: location + view */}
                   <div className={styles.cardFooter}>
                     <span className={styles.cardLocation}>
                       <LocationIcon />
-                      {lead.state}
+                      {lead.city || lead.state || 'India'}
                     </span>
                     <button
                       type="button"
@@ -699,9 +621,9 @@ export function LeadsPage() {
 
         {/* ── Table view ───────────────────────────────────────────────── */}
         {viewMode === 'table' && (
-          <Table<LeadItem>
+          <Table<Lead>
             columns={columns}
-            data={filteredLeads}
+            data={leads}
             rowKey="id"
             isLoading={isLoading}
             compact={isCompact}
@@ -712,9 +634,13 @@ export function LeadsPage() {
             footer={
               <div className={styles.tableFooter}>
                 <span className={styles.tableCount}>
-                  Showing {filteredLeads.length} of {leads.length} leads
+                  Showing {leads.length} of {pagination.total} leads
                 </span>
-                <Pagination currentPage={page} totalPages={Math.max(1, Math.ceil(filteredLeads.length / 10))} onPageChange={setPage} />
+                <Pagination
+                  currentPage={page}
+                  totalPages={Math.max(1, pagination.totalPages || 1)}
+                  onPageChange={setPage}
+                />
               </div>
             }
           />
@@ -725,7 +651,27 @@ export function LeadsPage() {
       <AddLeadModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveLead}
+        onSuccess={fetchLeads}
+      />
+
+      {/* ── Import Leads Modal ───────────────────────────────────── */}
+      <ImportLeadsModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onSuccess={fetchLeads}
+      />
+
+      {/* ── Export Leads Modal ───────────────────────────────────── */}
+      <ExportLeadsModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        currentFilters={{
+          search: debouncedSearch,
+          status: statusFilter !== 'all' ? (statusFilter as LeadStatus) : undefined,
+          state: stateFilter !== 'all' ? stateFilter : undefined,
+          leadSource: sourceFilter !== 'all' ? sourceFilter : undefined,
+        }}
+        totalLeadsCount={pagination.total}
       />
     </AppLayout>
   );

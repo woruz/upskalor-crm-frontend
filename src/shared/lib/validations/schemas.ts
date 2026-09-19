@@ -3,19 +3,11 @@ import * as Yup from 'yup';
 // ─── Login ──────────────────────────────────────────────────────────────────────
 
 export interface LoginFormValues {
-  companySlug: string;
   email: string;
   password: string;
 }
 
 export const loginSchema = Yup.object<LoginFormValues>({
-  companySlug: Yup.string()
-    .max(100, 'Company slug must be 100 characters or less')
-    .matches(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      'Only lowercase letters, numbers, and hyphens are allowed',
-    )
-    .required('Company slug is required'),
   email: Yup.string()
     .email('Invalid email address')
     .max(320, 'Email must be 320 characters or less')
@@ -30,7 +22,6 @@ export const loginSchema = Yup.object<LoginFormValues>({
 
 export interface RegisterFormValues {
   companyName: string;
-  companySlug: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -42,13 +33,6 @@ export const registerSchema = Yup.object<RegisterFormValues>({
   companyName: Yup.string()
     .max(150, 'Company name must be 150 characters or less')
     .required('Company name is required'),
-  companySlug: Yup.string()
-    .max(100, 'Company slug must be 100 characters or less')
-    .matches(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      'Only lowercase letters, numbers, and hyphens are allowed',
-    )
-    .required('Company slug is required'),
   firstName: Yup.string()
     .max(100, 'First name must be 100 characters or less')
     .required('First name is required'),

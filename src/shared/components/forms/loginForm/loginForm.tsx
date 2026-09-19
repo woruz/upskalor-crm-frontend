@@ -29,7 +29,6 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
 
   const formik = useFormik<LoginFormValues>({
     initialValues: {
-      companySlug: '',
       email: '',
       password: '',
     },
@@ -39,7 +38,6 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
     onSubmit: async (values, { setSubmitting, setErrors }) => {
       try {
         const response = await loginUser({
-          companySlug: values.companySlug,
           email: values.email,
           password: values.password,
         });
@@ -99,23 +97,7 @@ export function LoginForm({ callbackUrl }: LoginFormProps) {
   return (
     <form onSubmit={formik.handleSubmit} className="space-y-6">
       <div className="space-y-4">
-        <Input
-          id="companySlug"
-          name="companySlug"
-          type="text"
-          label="Company Slug"
-          placeholder="e.g. acme-solar"
-          onChange={formik.handleChange}
-          onBlur={formik.handleBlur}
-          value={formik.values.companySlug}
-          error={
-            formik.touched.companySlug && formik.errors.companySlug
-              ? formik.errors.companySlug
-              : undefined
-          }
-          helpText="The unique identifier for your company"
-          required
-        />
+
 
         <Input
           id="email"

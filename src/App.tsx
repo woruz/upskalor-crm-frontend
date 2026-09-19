@@ -11,6 +11,24 @@ const LeadsPage = lazy(() =>
 const LeadDetailPage = lazy(() =>
   import('@/pages/leads/leadDetail').then((m) => ({ default: m.LeadDetailPage })),
 );
+const QuotationsPage = lazy(() =>
+  import('@/pages/quotations/quotations').then((m) => ({ default: m.QuotationsPage })),
+);
+const CreateQuotationPage = lazy(() =>
+  import('@/pages/quotations/createQuotation').then((m) => ({
+    default: m.CreateQuotationPage,
+  })),
+);
+const QuotationDetailPage = lazy(() =>
+  import('@/pages/quotations/quotationDetail').then((m) => ({
+    default: m.QuotationDetailPage,
+  })),
+);
+const UserManagementPage = lazy(() =>
+  import('@/pages/users/userManagement').then((m) => ({
+    default: m.UserManagementPage,
+  })),
+);
 const LoginPage = lazy(() =>
   import('@/pages/auth/login/login').then((m) => ({ default: m.LoginPage })),
 );
@@ -54,6 +72,39 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <LeadDetailPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path={ROUTES.QUOTATIONS}
+            element={
+              <ProtectedRoute>
+                <QuotationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.CREATE_QUOTATION}
+            element={
+              <ProtectedRoute>
+                <CreateQuotationPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.QUOTATION_DETAILS}
+            element={
+              <ProtectedRoute>
+                <QuotationDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.USERS}
+            element={
+              <ProtectedRoute>
+                <UserManagementPage />
               </ProtectedRoute>
             }
           />

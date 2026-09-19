@@ -47,15 +47,21 @@ function NavItemComponent({ item, collapsed, activePath, onNavigate }: NavItemPr
   const itemClasses = [
     styles.navItem,
     isActive ? styles['navItem--active'] : '',
+    item.key === 'logout' ? styles['navItem--logout'] : '',
   ]
     .filter(Boolean)
     .join(' ');
+
+  const handleClick = () => {
+    item.onClick?.();
+    onNavigate?.(item);
+  };
 
   const inner = item.path ? (
     <NavLink
       to={item.path}
       className={itemClasses}
-      onClick={() => onNavigate?.(item)}
+      onClick={handleClick}
       aria-current={isActive ? 'page' : undefined}
       title={collapsed ? item.label : undefined}
     >
@@ -65,7 +71,7 @@ function NavItemComponent({ item, collapsed, activePath, onNavigate }: NavItemPr
     <button
       type="button"
       className={itemClasses}
-      onClick={() => onNavigate?.(item)}
+      onClick={handleClick}
       title={collapsed ? item.label : undefined}
     >
       {content}

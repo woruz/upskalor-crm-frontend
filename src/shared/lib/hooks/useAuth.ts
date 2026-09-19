@@ -7,6 +7,7 @@ import {
   clearUser,
 } from '@/shared/lib/store/slices/userSlice';
 import { logoutUser } from '@/shared/lib/api/authApi';
+import { refreshAccessToken } from '@/shared/lib/api/axios';
 import type { User, Company } from '@/shared/lib/types';
 
 export function useAuth() {
@@ -33,6 +34,10 @@ export function useAuth() {
     [dispatch],
   );
 
+  const refresh = useCallback(async () => {
+    return refreshAccessToken();
+  }, []);
+
   const logout = useCallback(async () => {
     // Attempt to revoke the refresh token on the server.
     // If the call fails (e.g. token already expired), we still clear local state.
@@ -47,5 +52,5 @@ export function useAuth() {
     dispatch(clearUser());
   }, [dispatch, refreshToken]);
 
-  return { isLoggedIn, token, refreshToken, user, company, login, logout };
+  return { isLoggedIn, token, refreshToken, user, company, login, logout, refresh };
 }

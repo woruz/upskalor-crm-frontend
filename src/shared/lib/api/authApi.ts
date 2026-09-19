@@ -11,9 +11,9 @@ export interface RegisterPayload {
 }
 
 export interface LoginPayload {
-  companySlug: string;
   email: string;
   password: string;
+  companySlug?: string;
 }
 
 /**
@@ -83,15 +83,46 @@ export async function getCurrentUser(token: string) {
 export function extractApiError(error: unknown): string {
   if (error && typeof error === 'object' && 'response' in error) {
     const axiosError = error as {
-      response?: { data?: { error?: { message?: string } }; status?: number };
+      response?: {
+        data?: {
+          error?: {
+            message?: string;
+            details?: string | string[];
+            code?: string;
+          } | string;
+          message?: string;
+        };
+        status?: number;
+      };
     };
-    const serverMessage = axiosError.response?.data?.error?.message;
-    if (serverMessage) return serverMessage;
+
+    const errObj = axiosError.response?.data?.error;
+    if (typeof errObj === 'string') return errObj;
+
+    if (errObj && typeof errObj === 'object') {
+      if (typeof errObj.details === 'string' && errObj.details.trim()) {
+        return errObj.details;
+      }
+      if (Array.isArray(errObj.details) && errObj.details.length > 0) {
+        return errObj.details.join(', ');
+      }
+      if (typeof errObj.message === 'string' && errObj.message.trim()) {
+        return errObj.message;
+      }
+    }
+
+    const topMessage = axiosError.response?.data?.message;
+    if (typeof topMessage === 'string' && topMessage.trim()) {
+      return topMessage;
+    }
 
     // Fallback based on status code
     const status = axiosError.response?.status;
-    if (status === 409) return 'Company slug or email is already taken';
-    if (status === 401) return 'Invalid credentials';
+    if (status === 400) return 'Invalid request data. Please check your inputs.';
+    if (status === 409) return 'Resource or email is already taken';
+    if (status === 401) return 'Invalid credentials or session expired';
+    if (status === 403) return 'You do not have permission to perform this action';
+    if (status === 404) return 'Requested resource not found';
     if (status === 413) return 'Request payload is too large';
   }
   return 'An unexpected error occurred. Please try again.';

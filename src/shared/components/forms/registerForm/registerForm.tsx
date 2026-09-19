@@ -33,7 +33,6 @@ export function RegisterForm() {
   const formik = useFormik<RegisterFormValues>({
     initialValues: {
       companyName: '',
-      companySlug: '',
       firstName: '',
       lastName: '',
       email: '',
@@ -44,9 +43,10 @@ export function RegisterForm() {
     validateOnChange: false,
     onSubmit: async (values, { setSubmitting, setErrors }) => {
       try {
+        const generatedSlug = slugify(values.companyName) || 'company';
         await registerCompany({
           companyName: values.companyName,
-          companySlug: values.companySlug,
+          companySlug: generatedSlug,
           firstName: values.firstName,
           lastName: values.lastName,
           email: values.email,
@@ -67,8 +67,8 @@ export function RegisterForm() {
 
         if (code === 'REGISTRATION_CONFLICT') {
           setErrors({
-            companySlug: 'Company slug or email is already taken',
-            email: 'Company slug or email is already taken',
+            companyName: 'A company with this name or slug already exists',
+            email: 'Company or email is already taken',
           });
         }
 
@@ -83,22 +83,6 @@ export function RegisterForm() {
     },
   });
 
-  /**
-   * When the user types a company name, auto-populate the slug field
-   * (only if the slug hasn't been manually edited).
-   */
-  const handleCompanyNameChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    formik.handleChange(e);
-    const currentSlug = formik.values.companySlug;
-    const autoSlug = slugify(formik.values.companyName);
-    // Only auto-fill if the slug currently matches the auto-generated one (or is empty)
-    if (currentSlug === '' || currentSlug === autoSlug) {
-      formik.setFieldValue('companySlug', slugify(e.target.value));
-    }
-  };
-
   return (
     <form onSubmit={formik.handleSubmit} className="space-y-6">
       <div className="space-y-4">
@@ -109,7 +93,7 @@ export function RegisterForm() {
           type="text"
           label="Company Name"
           placeholder="e.g. Acme Solar Corp"
-          onChange={handleCompanyNameChange}
+          onChange={formik.handleChange}
           onBlur={formik.handleBlur}
           value={formik.values.companyName}
           error={
@@ -117,24 +101,6 @@ export function RegisterForm() {
               ? formik.errors.companyName
               : undefined
           }
-          required
-        />
-
-        <Input
-          id="companySlug"
-          name="companySlug"
-          type="text"
-          label="Company Slug"
-          placeholder="e.g. acme-solar"
-          onChange={formik.handleChange}
-          onBlur={formik.handleBlur}
-          value={formik.values.companySlug}
-          error={
-            formik.touched.companySlug && formik.errors.companySlug
-              ? formik.errors.companySlug
-              : undefined
-          }
-          helpText="URL-safe identifier (lowercase, numbers, hyphens only)"
           required
         />
 

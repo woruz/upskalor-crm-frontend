@@ -1,0 +1,95 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 20px);
+  padding: var(--spacing-sm, 8px) 0;
+}
+
+.formatGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 6px);
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary, #111827);
+}
+
+.formatOptions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md, 12px);
+}
+
+.formatCard {
+  border: 1.5px solid var(--color-border-subtle, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--spacing-md, 14px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 10px);
+  transition: all 0.15s ease-in-out;
+  background-color: var(--color-bg-primary, #ffffff);
+
+  &:hover {
+    border-color: var(--color-primary-400, #818cf8);
+    background-color: var(--color-bg-secondary, #f9fafb);
+  }
+
+  &--active {
+    border-color: var(--color-primary-600, #4f46e5);
+    background-color: var(--color-primary-50, #eef2ff);
+  }
+}
+
+.formatText {
+  display: flex;
+  flex-direction: column;
+}
+
+.formatTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #111827);
+}
+
+.formatSubtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.filterSummary {
+  background-color: var(--color-bg-secondary, #f9fafb);
+  border: 1px solid var(--color-border-subtle, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--spacing-sm, 12px);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #6b7280);
+  line-height: 1.5;
+}
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl, 32px) 0;
+  gap: var(--spacing-md, 16px);
+  text-align: center;
+}
+
+.loadingTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #111827);
+  margin: 0;
+}
+
+.loadingDesc {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #6b7280);
+  margin: 0;
+}
