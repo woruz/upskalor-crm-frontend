@@ -3,7 +3,10 @@ import { Modal } from '@/shared/components/ui/modal/modal';
 import { Button } from '@/shared/components/ui/button/button';
 import { Input } from '@/shared/components/ui/input';
 import { Dropdown } from '@/shared/components/ui/dropdown';
-import type { LeadItem, LeadStatus } from './leads';
+import { useToast } from '@/shared/components/ui/toast/toast';
+import { createLead } from '@/shared/lib/api/leadsApi';
+import { extractApiError } from '@/shared/lib/api/authApi';
+import type { Lead, LeadStatus } from '@/shared/lib/types';
 import styles from './addLeadModal.module.scss';
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -15,12 +18,12 @@ interface LeadFormState {
   address: string;
   billAmount: string;
   followUp: string;
+  status: LeadStatus;
   state: string;
   city: string;
   roofOwnership: string;
   roofType: string;
   source: string;
-  executive: string;
 }
 
 const EMPTY_FORM: LeadFormState = {
@@ -30,12 +33,12 @@ const EMPTY_FORM: LeadFormState = {
   address: '',
   billAmount: '',
   followUp: '',
+  status: 'NEW',
   state: '',
   city: '',
   roofOwnership: '',
   roofType: '',
-  source: '',
-  executive: '',
+  source: 'Website',
 };
 
 // ─── Dropdown options ─────────────────────────────────────────────────────────
@@ -49,26 +52,53 @@ const INDIAN_STATES = [
   'Uttarakhand', 'West Bengal',
 ];
 
-const ROOF_OWNERSHIP = ['Own', 'Rented', 'Leased'];
-const ROOF_TYPES = ['Flat (RCC)', 'Sloped / Tiled', 'Metal / Tin', 'Asbestos', 'Other'];
-const LEAD_SOURCES = ['Website', 'Referral', 'Google Ads', 'Campaign', 'LinkedIn', 'Event', 'Cold Call', 'Other'];
-const EXECUTIVES = ['Amit Verma', 'Pooja Sharma', 'Rahul Mehta', 'Sneha Iyer'];
+const ROOF_OWNERSHIP = ['Owned', 'Rented', 'Commercial', 'Leased'];
+const ROOF_TYPES = ['Concrete Flat', 'Metal Shed', 'Tiled / Sloped', 'Asbestos', 'Other'];
+const LEAD_SOURCES = ['Website', 'Referral', 'Campaign', 'Cold Call', 'Direct Referral', 'Other'];
+
+const LEAD_STATUS_OPTIONS: { label: string; value: LeadStatus }[] = [
+  { label: 'New', value: 'NEW' },
+  { label: 'Contacted', value: 'CONTACTED' },
+  { label: 'Follow Up', value: 'FOLLOW_UP' },
+  { label: 'Interested', value: 'INTERESTED' },
+  { label: 'Not Interested', value: 'NOT_INTERESTED' },
+  { label: 'Converted', value: 'CONVERTED' },
+  { label: 'Lost', value: 'LOST' },
+];
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 interface FormErrors {
   customerName?: string;
   phone?: string;
+  email?: string;
   followUp?: string;
 }
 
 function validate(form: LeadFormState): FormErrors {
   const errors: FormErrors = {};
-  if (!form.customerName.trim()) errors.customerName = 'Customer name is required';
-  if (!form.phone.trim()) errors.phone = 'Mobile number is required';
-  else if (!/^\d{7,15}$/.test(form.phone.replace(/\s/g, '')))
-    errors.phone = 'Enter a valid mobile number';
-  if (!form.followUp) errors.followUp = 'Follow-up date is required';
+  const trimmedName = form.customerName.trim();
+  if (!trimmedName) {
+    errors.customerName = 'Customer name is required';
+  } else if (trimmedName.length < 2 || trimmedName.length > 150) {
+    errors.customerName = 'Customer name must be between 2 and 150 characters';
+  }
+
+  const cleanPhone = form.phone.replace(/[\s-]/g, '');
+  if (!cleanPhone) {
+    errors.phone = 'Mobile number is required';
+  } else if (!/^[6-9][0-9]{9}$/.test(cleanPhone)) {
+    errors.phone = 'Enter a valid 10-digit Indian mobile number (starts with 6-9)';
+  }
+
+  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errors.email = 'Enter a valid email address';
+  }
+
+  if (!form.followUp) {
+    errors.followUp = 'Follow-up date is required';
+  }
+
   return errors;
 }
 
@@ -77,12 +107,14 @@ function validate(form: LeadFormState): FormErrors {
 interface AddLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (lead: Omit<LeadItem, 'id'>) => void;
+  onSuccess?: (lead: Lead) => void;
+  onSave?: (lead: any) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AddLeadModal({ isOpen, onClose, onSave }: AddLeadModalProps) {
+export function AddLeadModal({ isOpen, onClose, onSuccess, onSave }: AddLeadModalProps) {
+  const { addToast } = useToast();
   const [form, setForm] = useState<LeadFormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -96,7 +128,7 @@ export function AddLeadModal({ isOpen, onClose, onSave }: AddLeadModalProps) {
     onClose();
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const errs = validate(form);
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -105,32 +137,48 @@ export function AddLeadModal({ isOpen, onClose, onSave }: AddLeadModalProps) {
     setErrors({});
     setIsSaving(true);
 
-    // Simulate async save
-    setTimeout(() => {
-      const followUpDate = form.followUp
-        ? new Date(form.followUp).toLocaleDateString('en-US', {
-            month: 'short',
-            day: '2-digit',
-            year: 'numeric',
-          })
-        : '';
+    try {
+      // Build ISO followUpDate
+      const followUpIso = new Date(form.followUp).toISOString();
+      const cleanPhone = form.phone.replace(/[\s-]/g, '');
 
-      onSave({
+      const response = await createLead({
         customerName: form.customerName.trim(),
-        phone: form.phone.replace(/\s/g, ''),
-        followUp: followUpDate,
-        status: 'New' as LeadStatus,
-        billAmount: parseFloat(form.billAmount) || 0,
-        state: form.state,
-        city: form.city.trim(),
-        source: form.source || 'Website',
-        executive: form.executive || EXECUTIVES[0],
+        mobileNumber: cleanPhone,
+        followUpDate: followUpIso,
+        status: form.status,
+        email: form.email.trim() || undefined,
+        address: form.address.trim() || undefined,
+        monthlyBillAmount: form.billAmount ? parseFloat(form.billAmount) : undefined,
+        state: form.state || undefined,
+        city: form.city.trim() || undefined,
+        roofOwnership: form.roofOwnership || undefined,
+        roofType: form.roofType || undefined,
+        leadSource: form.source || undefined,
       });
 
+      addToast({
+        title: 'Lead Created',
+        description: `Lead "${response.data.customerName}" created successfully.`,
+        variant: 'success',
+      });
+
+      onSuccess?.(response.data);
+      onSave?.(response.data);
+
       setForm(EMPTY_FORM);
-      setIsSaving(false);
       onClose();
-    }, 400);
+    } catch (error) {
+      const message = extractApiError(error);
+      addToast({
+        title: 'Failed to create lead',
+        description: message,
+        variant: 'error',
+      });
+      setErrors({ customerName: message });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -153,13 +201,14 @@ export function AddLeadModal({ isOpen, onClose, onSave }: AddLeadModalProps) {
           {/* Mobile + Email */}
           <div className={styles.row}>
             <Input
-              label="Mobile Number"
+              label="Mobile Number (10 digits)"
               placeholder="e.g. 9876543210"
               type="tel"
               required
               value={form.phone}
               onChange={(e) => set('phone')(e.target.value)}
               error={errors.phone}
+              helpText="Indian format: 10 digits starting with 6-9"
             />
             <Input
               label="Email"
@@ -167,6 +216,7 @@ export function AddLeadModal({ isOpen, onClose, onSave }: AddLeadModalProps) {
               type="email"
               value={form.email}
               onChange={(e) => set('email')(e.target.value)}
+              error={errors.email}
             />
           </div>
 
@@ -208,6 +258,24 @@ export function AddLeadModal({ isOpen, onClose, onSave }: AddLeadModalProps) {
             </div>
           </div>
 
+          {/* Initial Status + Lead Source */}
+          <div className={styles.row}>
+            <Dropdown
+              label="Status"
+              placeholder="Select Status"
+              options={LEAD_STATUS_OPTIONS}
+              value={form.status}
+              onChange={(v) => set('status')(String(v))}
+            />
+            <Dropdown
+              label="Lead Source"
+              placeholder="Select Source"
+              options={LEAD_SOURCES}
+              value={form.source}
+              onChange={(v) => set('source')(String(v))}
+            />
+          </div>
+
           {/* State + City */}
           <div className={styles.row}>
             <Dropdown
@@ -241,24 +309,6 @@ export function AddLeadModal({ isOpen, onClose, onSave }: AddLeadModalProps) {
               options={ROOF_TYPES}
               value={form.roofType}
               onChange={(v) => set('roofType')(String(v))}
-            />
-          </div>
-
-          {/* Lead Source + Assigned Executive */}
-          <div className={styles.row}>
-            <Dropdown
-              label="Lead Source"
-              placeholder="Select Source"
-              options={LEAD_SOURCES}
-              value={form.source}
-              onChange={(v) => set('source')(String(v))}
-            />
-            <Dropdown
-              label="Assigned Executive"
-              placeholder="Select Executive"
-              options={EXECUTIVES}
-              value={form.executive}
-              onChange={(v) => set('executive')(String(v))}
             />
           </div>
 

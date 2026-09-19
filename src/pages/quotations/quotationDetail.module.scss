@@ -1,0 +1,364 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.backNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─── Header Card ──────────────────────────────────────────────────────────── */
+.headerCard {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quoteTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quoteNumber {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  flex-wrap: wrap;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.statusDropdownWrapper {
+  width: 180px;
+}
+
+/* ─── Two-Column Layout ────────────────────────────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  align-items: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.leftCol {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.rightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* ─── Cards ────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─── System Specs Grid ────────────────────────────────────────────────────── */
+.specsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.specItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--color-bg-secondary);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.specLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.specValue {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* ─── Line Items Table ─────────────────────────────────────────────────────── */
+.itemsTableWrapper {
+  overflow-x: auto;
+  margin: 0 -24px -20px;
+  padding: 0 24px 20px;
+}
+
+.itemsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+
+    &:last-child {
+      text-align: right;
+    }
+  }
+
+  td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+
+    &:last-child {
+      text-align: right;
+      font-weight: 600;
+    }
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.itemNameCell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.itemNameText {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.itemSubText {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* ─── Milestones / Payment Schedule ────────────────────────────────────────── */
+.milestonesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.milestoneCard {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--color-bg-secondary);
+}
+
+.milestonePercent {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-primary-600);
+}
+
+.milestoneLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.milestoneAmount {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+/* ─── Financial Summary Card ───────────────────────────────────────────────── */
+.summaryCard {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+
+  &.subsidy {
+    color: var(--color-success, #10b981);
+    font-weight: 500;
+  }
+}
+
+.summaryDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 6px 0;
+}
+
+.netPayableCard {
+  background: color-mix(in srgb, var(--color-primary-500) 8%, var(--color-bg-secondary));
+  border: 1px solid color-mix(in srgb, var(--color-primary-500) 25%, var(--color-border));
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.netPayableLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-primary-700, #1d4ed8);
+}
+
+.netPayableAmount {
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: var(--color-primary-600, #2563eb);
+}
+
+/* ─── Customer Card ────────────────────────────────────────────────────────── */
+.customerFields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.customerField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.customerLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.customerValue {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.waBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #16a34a;
+  background: color-mix(in srgb, #16a34a 10%, transparent);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  text-decoration: none;
+
+  &:hover {
+    background: color-mix(in srgb, #16a34a 20%, transparent);
+  }
+}
+
+.loadingCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+}
+
+/* Print Styles */
+@media print {
+  .backNav,
+  .headerRight,
+  .actionBtn {
+    display: none !important;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,222 +1,221 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '@/shared/components/ui/appLayout/appLayout';
 import { LeadCard } from '@/shared/components/ui/leadCard';
 import { Button } from '@/shared/components/ui/button';
+import { Badge } from '@/shared/components/ui/badge/badge';
+import { Spinner } from '@/shared/components/ui/spinner/spinner';
 import { useToast } from '@/shared/components/ui/toast/toast';
+import { useAuth } from '@/shared/lib/hooks/useAuth';
+import {
+  getLeadById,
+  updateLead,
+  deleteLead,
+  getLeadActivities,
+} from '@/shared/lib/api/leadsApi';
+import { listQuotations } from '@/shared/lib/api/quotationsApi';
+import { extractApiError } from '@/shared/lib/api/authApi';
+import type { Lead, LeadActivity, LeadStatus, Quotation } from '@/shared/lib/types';
+import { ROUTES } from '@/shared/lib/config/routes';
 import styles from './leadDetail.module.scss';
 
-interface SurveyItem {
-  id: string;
-  dateTime: string;
-  technician: string;
-  status: string;
-}
-
-interface NoteItem {
-  id: string;
-  text: string;
-  author: string;
-  createdAt: string;
-}
-
-interface LeadDetailData {
-  id: string;
-  customerName: string;
-  location: string;
-  billAmount: string;
-  status: string;
-  followUpDate: string;
-  mobileNumber: string;
-  email: string;
-  leadSource: string;
-  roofOwnership: string;
-  surveys: SurveyItem[];
-  notes: NoteItem[];
-}
-
-// ─── Default Mock Data matching screenshot ────────────────────────────────────
-const DEFAULT_LEAD: LeadDetailData = {
-  id: '1',
-  customerName: 'Fuzen',
-  location: 'Mumbai, Mumbai, Jharkhand',
-  billAmount: '₹10,000 /mo',
-  status: 'New',
-  followUpDate: '2026-07-01',
-  mobileNumber: '+789652010',
-  email: 'fuzen@gmail.com',
-  leadSource: 'Referral',
-  roofOwnership: 'Owned',
-  surveys: [
-    {
-      id: 's1',
-      dateTime: '25 Aug 2026, 02:08 PM',
-      technician: 'Unassigned',
-      status: 'Scheduled',
-    },
-  ],
-  notes: [],
-};
-
-const LEADS_DATABASE: Record<string, LeadDetailData> = {
-  '1': DEFAULT_LEAD,
-  '2': {
-    id: '2',
-    customerName: 'Rahul Desai',
-    location: 'Mumbai, Maharashtra',
-    billAmount: '₹3,500 /mo',
-    status: 'New',
-    followUpDate: '2026-07-01',
-    mobileNumber: '+919876543211',
-    email: 'rahul.desai@gmail.com',
-    leadSource: 'Referral',
-    roofOwnership: 'Owned',
-    surveys: [],
-    notes: [],
-  },
-  '3': {
-    id: '3',
-    customerName: 'Sham',
-    location: 'Pune, Maharashtra',
-    billAmount: '₹1,000 /mo',
-    status: 'Contacted',
-    followUpDate: '2026-08-29',
-    mobileNumber: '+919876543212',
-    email: 'sham.k@gmail.com',
-    leadSource: 'Website',
-    roofOwnership: 'Rented',
-    surveys: [],
-    notes: [],
-  },
-};
-
-const TECHNICIANS = [
-  'Rajesh Kumar',
-  'Sunil Mehta',
-  'Vikram Rathore',
-  'Deepak Verma',
+const BACKEND_STATUS_OPTIONS: { label: string; value: LeadStatus }[] = [
+  { label: 'New', value: 'NEW' },
+  { label: 'Contacted', value: 'CONTACTED' },
+  { label: 'Follow Up', value: 'FOLLOW_UP' },
+  { label: 'Interested', value: 'INTERESTED' },
+  { label: 'Not Interested', value: 'NOT_INTERESTED' },
+  { label: 'Converted', value: 'CONVERTED' },
+  { label: 'Lost', value: 'LOST' },
 ];
 
+const formatActivityType = (type: string): string => {
+  return type
+    .replace(/^LEAD_/, '')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+const activityBadgeVariant = (type: string) => {
+  switch (type) {
+    case 'LEAD_CREATED':
+      return 'success' as const;
+    case 'LEAD_STATUS_CHANGED':
+      return 'primary' as const;
+    case 'LEAD_ASSIGNED':
+    case 'LEAD_REASSIGNED':
+      return 'info' as const;
+    case 'LEAD_DELETED':
+      return 'error' as const;
+    default:
+      return 'secondary' as const;
+  }
+};
+
 export const LeadDetailPage: React.FC = () => {
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToast } = useToast();
 
-  const [lead, setLead] = useState<LeadDetailData>(() => {
-    if (id && LEADS_DATABASE[id]) {
-      return LEADS_DATABASE[id];
-    }
-    return DEFAULT_LEAD;
-  });
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
 
-  React.useEffect(() => {
-    if (id && LEADS_DATABASE[id]) {
-      setLead(LEADS_DATABASE[id]);
-    }
-  }, [id]);
-
-  const [newSurveyDate, setNewSurveyDate] = useState<string>('');
-  const [selectedTechnician, setSelectedTechnician] = useState<string>('');
-  const [noteContent, setNoteContent] = useState<string>('');
+  const [lead, setLead] = useState<Lead | null>(null);
+  const [activities, setActivities] = useState<LeadActivity[]>([]);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Handle Save from the LeadCard
-  const handleSaveLead = ({
+  // ── Fetch lead, activities & quotations ─────────────────────────────────────
+
+  const loadLead = useCallback(async () => {
+    if (!id) return;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const [leadRes, actRes, quoteRes] = await Promise.all([
+        getLeadById(id),
+        getLeadActivities(id, 1, 50).catch(() => ({ data: [] })),
+        listQuotations({ leadId: id, limit: 50 }).catch(() => ({ data: [] })),
+      ]);
+
+      setLead(leadRes.data);
+      setActivities(actRes.data || []);
+      setQuotations(quoteRes.data || []);
+    } catch (err) {
+      const msg = extractApiError(err);
+      setError(msg);
+      addToast({
+        title: 'Lead Not Found',
+        description: msg,
+        variant: 'error',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id, addToast]);
+
+  useEffect(() => {
+    loadLead();
+  }, [loadLead]);
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  const handleSaveLead = async ({
     status,
     followUpDate,
   }: {
     status: string;
     followUpDate: string;
   }) => {
+    if (!lead) return;
     setIsSaving(true);
-    setTimeout(() => {
-      setLead((prev) => ({ ...prev, status, followUpDate }));
-      setIsSaving(false);
+
+    try {
+      const isoDate = followUpDate
+        ? new Date(followUpDate).toISOString()
+        : lead.followUpDate;
+
+      const response = await updateLead(lead.id, {
+        status: status as LeadStatus,
+        followUpDate: isoDate,
+      });
+
+      setLead(response.data);
+
+      // Refresh activities to show the update log
+      const actRes = await getLeadActivities(lead.id, 1, 50).catch(() => ({
+        data: [],
+      }));
+      setActivities(actRes.data || []);
+
       addToast({
         title: 'Lead Updated',
         description: `Status updated to "${status}" and follow-up saved.`,
         variant: 'success',
       });
-    }, 500);
-  };
-
-  // Handle schedule survey
-  const handleScheduleSurvey = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSurveyDate) {
+    } catch (err) {
+      const msg = extractApiError(err);
       addToast({
-        title: 'Survey Date Required',
-        description: 'Please select a survey date & time.',
-        variant: 'warning',
+        title: 'Update Failed',
+        description: msg,
+        variant: 'error',
       });
-      return;
+    } finally {
+      setIsSaving(false);
     }
-
-    // Format survey date nicely
-    const dateObj = new Date(newSurveyDate);
-    const formattedDate = !isNaN(dateObj.getTime())
-      ? dateObj.toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-        })
-      : newSurveyDate;
-
-    const newSurvey: SurveyItem = {
-      id: `s-${Date.now()}`,
-      dateTime: formattedDate,
-      technician: selectedTechnician || 'Unassigned',
-      status: 'Scheduled',
-    };
-
-    setLead((prev) => ({
-      ...prev,
-      surveys: [newSurvey, ...prev.surveys],
-    }));
-
-    setNewSurveyDate('');
-    setSelectedTechnician('');
-
-    addToast({
-      title: 'Survey Scheduled',
-      description: `Survey assigned to ${newSurvey.technician}.`,
-      variant: 'success',
-    });
   };
 
-  // Handle add note
-  const handleAddNote = () => {
-    if (!noteContent.trim()) {
+  const handleDelete = async () => {
+    if (!lead) return;
+    try {
+      await deleteLead(lead.id);
       addToast({
-        title: 'Empty Note',
-        description: 'Please write a note before adding.',
-        variant: 'warning',
+        title: 'Lead Deleted',
+        description: `${lead.customerName} has been removed.`,
+        variant: 'success',
       });
-      return;
+      navigate('/leads');
+    } catch (err) {
+      const msg = extractApiError(err);
+      addToast({
+        title: 'Delete Failed',
+        description: msg,
+        variant: 'error',
+      });
     }
-
-    const newNote: NoteItem = {
-      id: `n-${Date.now()}`,
-      text: noteContent.trim(),
-      author: 'Amit Verma',
-      createdAt: 'Just now',
-    };
-
-    setLead((prev) => ({
-      ...prev,
-      notes: [newNote, ...prev.notes],
-    }));
-
-    setNoteContent('');
-    addToast({
-      title: 'Note Added',
-      description: 'Your note has been saved.',
-      variant: 'success',
-    });
   };
+
+  // ── Loading & Error states ─────────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <AppLayout
+        headerProps={{
+          title: 'Lead Details',
+          breadcrumbs: [{ label: 'CRM' }, { label: 'Leads' }],
+          userName: fullName || user?.email || 'User',
+          userRole: user?.role || 'user',
+        }}
+      >
+        <div className={styles.loadingCenter}>
+          <Spinner size="lg" />
+          <p>Loading lead details…</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error || !lead) {
+    return (
+      <AppLayout
+        headerProps={{
+          title: 'Lead Details',
+          breadcrumbs: [{ label: 'CRM' }, { label: 'Leads' }],
+          userName: fullName || user?.email || 'User',
+          userRole: user?.role || 'user',
+        }}
+      >
+        <div className={styles.loadingCenter}>
+          <h3>Unable to load lead</h3>
+          <p style={{ color: 'var(--color-text-secondary)' }}>
+            {error || 'The requested lead does not exist or has been deleted.'}
+          </p>
+          <Button variant="primary" size="md" onClick={() => navigate('/leads')}>
+            Back to Leads
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const locationString = [lead.city, lead.state].filter(Boolean).join(', ');
+  const followUpDateInput = lead.followUpDate
+    ? lead.followUpDate.split('T')[0]
+    : '';
 
   return (
     <AppLayout
@@ -227,8 +226,8 @@ export const LeadDetailPage: React.FC = () => {
           { label: 'Leads' },
           { label: lead.customerName },
         ],
-        userName: 'Amit Verma',
-        userRole: 'Sales Executive',
+        userName: fullName || user?.email || 'User',
+        userRole: user?.role || 'user',
         notificationCount: 5,
       }}
     >
@@ -266,10 +265,15 @@ export const LeadDetailPage: React.FC = () => {
             {/* 1. Custom LeadCard Component */}
             <LeadCard
               title={lead.customerName}
-              location={lead.location}
-              monthlyAmount={lead.billAmount}
+              location={locationString || undefined}
+              monthlyAmount={
+                lead.monthlyBillAmount
+                  ? `₹${lead.monthlyBillAmount.toLocaleString('en-IN')} / mo`
+                  : undefined
+              }
               status={lead.status}
-              followUpDate={lead.followUpDate}
+              statusOptions={BACKEND_STATUS_OPTIONS}
+              followUpDate={followUpDateInput}
               isSaving={isSaving}
               onSave={handleSaveLead}
               onEdit={() =>
@@ -279,26 +283,13 @@ export const LeadDetailPage: React.FC = () => {
                   variant: 'info',
                 })
               }
-              onCreateQuotation={() =>
-                addToast({
-                  title: 'Create Quotation',
-                  description: `Generating quotation for ${lead.customerName}`,
-                  variant: 'info',
-                })
-              }
-              onDelete={() => {
-                addToast({
-                  title: 'Lead Deleted',
-                  description: `${lead.customerName} was removed.`,
-                  variant: 'error',
-                });
-                navigate('/leads');
-              }}
+              onCreateQuotation={() => navigate(`${ROUTES.CREATE_QUOTATION}?leadId=${lead.id}`)}
+              onDelete={handleDelete}
             />
 
-            {/* 2. Contact Information Card */}
+            {/* 2. Contact & Property Information Card */}
             <section className={styles.card} aria-label="Contact Information">
-              <h3 className={styles.cardTitle}>Contact Information</h3>
+              <h3 className={styles.cardTitle}>Contact & Property Information</h3>
 
               <div className={styles.contactGrid}>
                 {/* Mobile Number */}
@@ -330,7 +321,15 @@ export const LeadDetailPage: React.FC = () => {
                 <div className={styles.contactField}>
                   <span className={styles.contactLabel}>EMAIL ADDRESS</span>
                   <div className={styles.contactValue}>
-                    <span>{lead.email}</span>
+                    <span>{lead.email || '-'}</span>
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className={styles.contactField}>
+                  <span className={styles.contactLabel}>ADDRESS</span>
+                  <div className={styles.contactValue}>
+                    <span>{lead.address || '-'}</span>
                   </div>
                 </div>
 
@@ -338,7 +337,7 @@ export const LeadDetailPage: React.FC = () => {
                 <div className={styles.contactField}>
                   <span className={styles.contactLabel}>LEAD SOURCE</span>
                   <div className={styles.contactValue}>
-                    <span>{lead.leadSource}</span>
+                    <span>{lead.leadSource || '-'}</span>
                   </div>
                 </div>
 
@@ -346,186 +345,145 @@ export const LeadDetailPage: React.FC = () => {
                 <div className={styles.contactField}>
                   <span className={styles.contactLabel}>ROOF OWNERSHIP</span>
                   <div className={styles.contactValue}>
-                    <span>{lead.roofOwnership}</span>
+                    <span>{lead.roofOwnership || '-'}</span>
+                  </div>
+                </div>
+
+                {/* Roof Type */}
+                <div className={styles.contactField}>
+                  <span className={styles.contactLabel}>ROOF TYPE</span>
+                  <div className={styles.contactValue}>
+                    <span>{lead.roofType || '-'}</span>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* 3. Site Surveys Card */}
-            <section className={styles.card} aria-label="Site Surveys">
-              <h3 className={styles.cardTitle}>Site Surveys</h3>
-
-              {/* Schedule form */}
-              <form onSubmit={handleScheduleSurvey} className={styles.surveyScheduleForm}>
-                <div className={styles.surveyInputGroup}>
-                  <label htmlFor="survey-date" className={styles.surveyLabel}>
-                    SURVEY DATE
-                  </label>
-                  <input
-                    id="survey-date"
-                    type="datetime-local"
-                    className={styles.surveyDateInput}
-                    value={newSurveyDate}
-                    onChange={(e) => setNewSurveyDate(e.target.value)}
-                  />
-                </div>
-
-                <div className={styles.surveyInputGroup}>
-                  <label htmlFor="survey-tech" className={styles.surveyLabel}>
-                    ASSIGN TECHNICIAN
-                  </label>
-                  <div className={styles.surveySelectWrapper}>
-                    <select
-                      id="survey-tech"
-                      className={styles.surveySelect}
-                      value={selectedTechnician}
-                      onChange={(e) => setSelectedTechnician(e.target.value)}
-                    >
-                      <option value="">Select Technician</option>
-                      {TECHNICIANS.map((tech) => (
-                        <option key={tech} value={tech}>
-                          {tech}
-                        </option>
-                      ))}
-                    </select>
-                    <span className={styles.surveySelectArrow} aria-hidden="true">
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </span>
-                  </div>
-                </div>
-
-                <Button type="submit" variant="primary" size="md">
-                  Schedule
-                </Button>
-              </form>
-
-              {/* Survey History */}
-              <div className={styles.surveyHistorySection}>
-                <h4 className={styles.surveyHistoryTitle}>SURVEY HISTORY</h4>
-
-                <div className={styles.tableWrapper}>
-                  <table className={styles.surveyTable}>
-                    <thead>
-                      <tr>
-                        <th>DATE & TIME</th>
-                        <th>TECHNICIAN</th>
-                        <th>STATUS</th>
-                        <th>ACTION</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lead.surveys.map((survey) => (
-                        <tr key={survey.id}>
-                          <td>{survey.dateTime}</td>
-                          <td>{survey.technician}</td>
-                          <td>
-                            <span className={styles.statusPill}>
-                              {survey.status}
-                            </span>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className={styles.actionIconBtn}
-                              title="View Survey"
-                              onClick={() =>
-                                addToast({
-                                  title: 'Survey Details',
-                                  description: `Survey scheduled for ${survey.dateTime}`,
-                                  variant: 'info',
-                                })
-                              }
-                            >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                                <polyline points="15 3 21 3 21 9" />
-                                <line x1="10" y1="14" x2="21" y2="3" />
-                              </svg>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          {/* ─── Right Column: Activity & Notes Card ──────────────────────── */}
-          <div className={styles.rightCol}>
-            <aside className={styles.notesCard} aria-label="Activity & Notes">
-              <h3 className={styles.cardTitle}>Activity & Notes</h3>
-
-              <textarea
-                className={styles.notesTextarea}
-                placeholder="Add a quick note..."
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-              />
-
-              <div className={styles.addNoteBtnWrap}>
+            {/* 3. Solar Quotations Card */}
+            <section className={styles.card} aria-label="Quotations">
+              <div className={styles.quotesHeader}>
+                <h3 className={styles.cardTitle} style={{ margin: 0 }}>
+                  Solar Quotations ({quotations.length})
+                </h3>
                 <Button
                   type="button"
-                  variant="primary"
-                  fullWidth
-                  size="md"
-                  onClick={handleAddNote}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`${ROUTES.CREATE_QUOTATION}?leadId=${lead?.id || id}`)}
                   leftIcon={
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                   }
                 >
-                  Add Note
+                  Create Quotation
                 </Button>
               </div>
 
-              {lead.notes.length === 0 ? (
-                <div className={styles.notesEmptyState}>
-                  No notes added yet.
+              {quotations.length === 0 ? (
+                <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                  No quotations generated yet. Click &quot;Create Quotation&quot; to prepare a proposal.
                 </div>
               ) : (
-                <div className={styles.notesList}>
-                  {lead.notes.map((n) => (
-                    <div key={n.id} className={styles.noteItem}>
-                      <p className={styles.noteText}>{n.text}</p>
-                      <div className={styles.noteMeta}>
-                        <span>{n.author}</span>
-                        <span>{n.createdAt}</span>
+                <div className={styles.quotesList}>
+                  {quotations.map((q) => (
+                    <div key={q.id} className={styles.quoteItem}>
+                      <div className={styles.quoteItemLeft}>
+                        <span
+                          className={styles.quoteItemNumber}
+                          onClick={() => navigate(`/quotations/${q.id}`)}
+                        >
+                          {q.quoteNumber}
+                        </span>
+                        <div className={styles.quoteItemDetails}>
+                          <span>{q.systemSizeKw} kW {q?.systemType?.replace('_', ' ') || 'ON GRID'}</span>
+                          <span>•</span>
+                          <span>
+                            {new Date(q.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: '2-digit',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
                       </div>
+
+                      <div className={styles.quoteItemRight}>
+                        <div className={styles.quoteItemCost}>
+                          <span className={styles.quoteItemNet}>
+                            ₹{(q.netCustomerCost || 0).toLocaleString('en-IN')}
+                          </span>
+                          <span className={styles.quoteItemGross}>
+                            Gross: ₹{(q.grandTotal || 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <Badge
+                          variant={q.status === 'ACCEPTED' ? 'success' : q.status === 'SENT' ? 'info' : 'secondary'}
+                          pill
+                        >
+                          {q.status}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/quotations/${q.id}`)}
+                        >
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* ─── Right Column: Activity Timeline ──────────────────────────── */}
+          <div className={styles.rightCol}>
+            <aside className={styles.notesCard} aria-label="Activity Timeline">
+              <h3 className={styles.cardTitle}>Activity Timeline</h3>
+
+              {activities.length === 0 ? (
+                <div className={styles.notesEmptyState}>
+                  No activities recorded yet.
+                </div>
+              ) : (
+                <div className={styles.activityTimeline}>
+                  {activities.map((act) => (
+                    <div key={act.id} className={styles.activityItem}>
+                      <div className={styles.activityHeader}>
+                        <Badge
+                          variant={activityBadgeVariant(act.activity_type)}
+                          pill
+                        >
+                          {formatActivityType(act.activity_type)}
+                        </Badge>
+                        <span className={styles.activityTime}>
+                          {act.created_at
+                            ? new Date(act.created_at).toLocaleDateString(
+                              'en-US',
+                              {
+                                month: 'short',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              },
+                            )
+                            : ''}
+                        </span>
+                      </div>
+
+                      {act.description && (
+                        <p className={styles.activityDesc}>{act.description}</p>
+                      )}
+
+                      {(act.old_value || act.new_value) && (
+                        <div className={styles.activityDiff}>
+                          {act.old_value ? `${act.old_value} → ` : ''}
+                          <strong>{String(act.new_value)}</strong>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -534,6 +492,7 @@ export const LeadDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
     </AppLayout>
   );
 };

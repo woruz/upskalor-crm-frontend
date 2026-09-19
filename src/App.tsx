@@ -11,8 +11,31 @@ const LeadsPage = lazy(() =>
 const LeadDetailPage = lazy(() =>
   import('@/pages/leads/leadDetail').then((m) => ({ default: m.LeadDetailPage })),
 );
+const QuotationsPage = lazy(() =>
+  import('@/pages/quotations/quotations').then((m) => ({ default: m.QuotationsPage })),
+);
+const CreateQuotationPage = lazy(() =>
+  import('@/pages/quotations/createQuotation').then((m) => ({
+    default: m.CreateQuotationPage,
+  })),
+);
+const QuotationDetailPage = lazy(() =>
+  import('@/pages/quotations/quotationDetail').then((m) => ({
+    default: m.QuotationDetailPage,
+  })),
+);
+const UserManagementPage = lazy(() =>
+  import('@/pages/users/userManagement').then((m) => ({
+    default: m.UserManagementPage,
+  })),
+);
 const LoginPage = lazy(() =>
   import('@/pages/auth/login/login').then((m) => ({ default: m.LoginPage })),
+);
+const RegisterPage = lazy(() =>
+  import('@/pages/auth/register/register').then((m) => ({
+    default: m.RegisterPage,
+  })),
 );
 const DashboardPage = lazy(() =>
   import('@/pages/dashboard/dashboard').then((m) => ({
@@ -25,18 +48,81 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Redirect root to /leads */}
-          <Route path={ROUTES.HOME} element={<Navigate to={ROUTES.LEADS} replace />} />
+          {/* Root route: redirects to /dashboard if logged in, or /login if not */}
+          <Route
+            path={ROUTES.HOME}
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* Leads page – public for demo purposes */}
-          <Route path={ROUTES.LEADS} element={<LeadsPage />} />
-          <Route path={ROUTES.LEAD_DETAILS} element={<LeadDetailPage />} />
+          {/* Protected CRM routes – require authentication */}
+          <Route
+            path={ROUTES.LEADS}
+            element={
+              <ProtectedRoute>
+                <LeadsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.LEAD_DETAILS}
+            element={
+              <ProtectedRoute>
+                <LeadDetailPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path={ROUTES.QUOTATIONS}
+            element={
+              <ProtectedRoute resource="quotations">
+                <QuotationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.CREATE_QUOTATION}
+            element={
+              <ProtectedRoute resource="quotations">
+                <CreateQuotationPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.QUOTATION_DETAILS}
+            element={
+              <ProtectedRoute resource="quotations">
+                <QuotationDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.USERS}
+            element={
+              <ProtectedRoute allowedRoles={['super_admin']}>
+                <UserManagementPage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path={ROUTES.LOGIN}
             element={
               <ProtectedRoute requireAuth={false} redirectTo={ROUTES.DASHBOARD}>
                 <LoginPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path={ROUTES.REGISTER}
+            element={
+              <ProtectedRoute requireAuth={false} redirectTo={ROUTES.DASHBOARD}>
+                <RegisterPage />
               </ProtectedRoute>
             }
           />
@@ -50,7 +136,73 @@ export default function App() {
             }
           />
 
-          <Route path="*" element={<Navigate to={ROUTES.LEADS} replace />} />
+          {/* Unimplemented placeholder routes – redirect directly to Dashboard */}
+          <Route
+            path="/kanban"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kanban/*"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/*"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.SETTINGS}
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/*"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.PROFILE}
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/*"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

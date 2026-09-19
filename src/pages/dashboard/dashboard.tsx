@@ -9,8 +9,10 @@ export function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+
+  const handleLogout = async () => {
+    await logout();
     navigate(ROUTES.LOGIN);
   };
 
@@ -19,8 +21,8 @@ export function DashboardPage() {
       headerProps={{
         title: 'Dashboard',
         breadcrumbs: [{ label: 'Dashboard' }],
-        userName: user?.name || user?.email || 'User',
-        userRole: 'Administrator',
+        userName: fullName || user?.email || 'User',
+        userRole: user?.role || 'user',
         actions: (
           <Button variant="outline" size="sm" onClick={handleLogout}>
             Sign out
@@ -31,7 +33,7 @@ export function DashboardPage() {
       <div className={styles.page}>
         <main className={styles.main}>
           <div className={styles.welcomeCard}>
-            <h2>Welcome back{user?.name ? `, ${user.name}` : ''}!</h2>
+            <h2>Welcome back{fullName ? `, ${fullName}` : ''}!</h2>
             <p>
               You are signed in as <strong>{user?.email || 'user'}</strong>.
             </p>

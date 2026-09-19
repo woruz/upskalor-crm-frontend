@@ -15,6 +15,14 @@ export interface SidebarNavItem {
   badge?: number | string;
   /** Divider before this item */
   dividerBefore?: boolean;
+  /** Roles permitted to see this item */
+  roles?: string[];
+  /** Dynamic resource permission required to view this item (e.g. 'leads', 'quotations', 'reports') */
+  resource?: string;
+  /** Action required on the resource (default: 'read') */
+  action?: string;
+  /** Optional click handler (for actions like logout) */
+  onClick?: () => void;
 }
 
 export interface SidebarProps {
