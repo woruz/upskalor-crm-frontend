@@ -38,6 +38,7 @@ export const Dropdown = ({
   children,
   onOpen,
   onClose,
+  style,
 }: DropdownProps) => {
   const generatedId = useId();
   const dropdownId = id || generatedId;
@@ -149,10 +150,9 @@ export const Dropdown = ({
     };
   }, [isOpen, handleClose, isSearchable]);
 
-  // Backward compatibility: If custom trigger & children passed, render action menu mode
   if (trigger) {
     return (
-      <div ref={containerRef} className={`${styles.dropdown} ${className}`}>
+      <div ref={containerRef} style={style} className={`${styles.dropdown} ${className}`}>
         <div className={styles['dropdown-trigger']} onClick={toggle}>
           {trigger}
         </div>
@@ -183,6 +183,7 @@ export const Dropdown = ({
   return (
     <div
       ref={containerRef}
+      style={style}
       className={`${styles['dropdown-wrapper']} ${
         inline ? styles['dropdown-wrapper--inline'] : ''
       } ${className}`}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { listRoles } from '@/shared/lib/api/usersApi';
-import type { Role, PermissionAction } from '@/shared/lib/types';
+import type { Role, PermissionAction, ResourcePermission } from '@/shared/lib/types';
 
 const ROLES_CACHE_KEY = 'crm_roles_cache';
 
@@ -56,10 +56,10 @@ export function usePermissions() {
       // If user has permissions directly attached
       if (user.permissions && Array.isArray(user.permissions)) {
         const found = user.permissions.find(
-          (p) => p.resource.toLowerCase() === resource.toLowerCase()
+          (p: ResourcePermission) => p.resource.toLowerCase() === resource.toLowerCase()
         );
         if (found) {
-          return found.actions.map((a) => a.toLowerCase()).includes(action.toLowerCase());
+          return found.actions.map((a: PermissionAction | string) => a.toLowerCase()).includes(action.toLowerCase());
         }
       }
 
@@ -69,11 +69,11 @@ export function usePermissions() {
       }
 
       const perm = userRoleDefinition.permissions.find(
-        (p) => p.resource.toLowerCase() === resource.toLowerCase()
+        (p: ResourcePermission) => p.resource.toLowerCase() === resource.toLowerCase()
       );
 
       if (!perm) return false;
-      return perm.actions.map((a) => a.toLowerCase()).includes(action.toLowerCase());
+      return perm.actions.map((a: PermissionAction | string) => a.toLowerCase()).includes(action.toLowerCase());
     },
     [user, userRoleDefinition]
   );

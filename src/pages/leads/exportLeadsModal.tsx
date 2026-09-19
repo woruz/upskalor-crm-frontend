@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Modal } from '@/shared/components/ui/modal/modal';
 import { Button } from '@/shared/components/ui/button/button';
 import { Spinner } from '@/shared/components/ui/spinner/spinner';
@@ -9,7 +9,7 @@ import {
   getExportDownloadUrl,
 } from '@/shared/lib/api/leadsApi';
 import { extractApiError } from '@/shared/lib/api/authApi';
-import type { LeadFilters, LeadStatus } from '@/shared/lib/types';
+import type { LeadFilters } from '@/shared/lib/types';
 import styles from './exportLeadsModal.module.scss';
 
 interface ExportLeadsModalProps {
@@ -167,6 +167,7 @@ export function ExportLeadsModal({
               <div className={styles.filterSummary}>
                 <strong>Export Scope:</strong>
                 <div>
+                  {totalLeadsCount > 0 ? `${totalLeadsCount} total matching leads. ` : ''}
                   Active filters will be applied (Search:{' '}
                   {currentFilters?.search || 'None'}, Status:{' '}
                   {currentFilters?.status || 'All'}, State:{' '}

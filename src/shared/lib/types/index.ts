@@ -1,22 +1,23 @@
 export type UserRole = 'super_admin' | 'admin' | 'user' | string;
 
+export type PermissionAction = 'create' | 'read' | 'update' | 'delete' | 'export';
+
+export interface ResourcePermission {
+  resource: string;
+  actions: PermissionAction[];
+}
+
 export interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   role: UserRole;
+  permissions?: ResourcePermission[];
   status?: 'ACTIVE' | 'INACTIVE';
   avatar?: string;
   createdAt?: string;
   updatedAt?: string;
-}
-
-export type PermissionAction = 'create' | 'read' | 'update' | 'delete' | 'export';
-
-export interface ResourcePermission {
-  resource: string;
-  actions: PermissionAction[];
 }
 
 export interface Role {
