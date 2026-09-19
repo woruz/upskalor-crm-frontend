@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { KanbanProps, KanbanColumn } from './kanban.types';
+import type { KanbanProps } from './kanban.types';
 import styles from './kanban.module.scss';
 
 export function Kanban<T = any>({

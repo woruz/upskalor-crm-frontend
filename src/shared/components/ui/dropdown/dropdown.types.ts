@@ -59,4 +59,6 @@ export interface DropdownProps {
   children?: React.ReactNode;
   onOpen?: () => void;
   onClose?: () => void;
+  /** Inline styles for outer wrapper */
+  style?: React.CSSProperties;
 }

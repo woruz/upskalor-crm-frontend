@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { TableProps, Column, SortOrder } from './table.types';
 import styles from './table.module.scss';
 
@@ -220,7 +220,7 @@ export function Table<T = any>({
               // Loading Skeleton rows
               Array.from({ length: loadingRowsCount }).map((_, rIdx) => (
                 <tr key={`skeleton-${rIdx}`} className={styles.skeletonRow}>
-                  {columns.map((col, cIdx) => (
+                  {columns.map((_, cIdx) => (
                     <td key={`skeleton-cell-${cIdx}`} className={styles.skeletonCell}>
                       <div
                         className={styles.skeletonBar}

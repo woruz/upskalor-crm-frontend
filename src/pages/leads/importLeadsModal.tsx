@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Modal } from '@/shared/components/ui/modal/modal';
 import { Button } from '@/shared/components/ui/button/button';
 import { FileUpload } from '@/shared/components/ui/fileUpload/fileUpload';
