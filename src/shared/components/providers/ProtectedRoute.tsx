@@ -11,12 +11,8 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({
   children,
-  requireAuth = true,
-  redirectTo,
-  allowedRoles,
-  resource,
-  action = 'read',
 }: ProtectedRouteProps) => {
   // Dev mode bypass: Render children directly without backend authentication requirement
   return <>{children}</>;
 };
+
