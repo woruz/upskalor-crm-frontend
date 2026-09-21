@@ -6,8 +6,17 @@ interface UserState {
   company: Company | null;
 }
 
+const mockUser: User = {
+  id: 'dev-admin-user',
+  email: 'admin@upskalor.com',
+  firstName: 'Admin',
+  lastName: 'User',
+  role: 'super_admin',
+  status: 'ACTIVE',
+};
+
 const initialState: UserState = {
-  user: null,
+  user: mockUser,
   company: null,
 };
 

@@ -24,6 +24,19 @@ const QuotationDetailPage = lazy(() =>
     default: m.QuotationDetailPage,
   })),
 );
+const SurveysPage = lazy(() =>
+  import('@/pages/surveys/surveys').then((m) => ({ default: m.SurveysPage })),
+);
+const SurveyDetailPage = lazy(() =>
+  import('@/pages/surveys/surveyDetail').then((m) => ({
+    default: m.SurveyDetailPage,
+  })),
+);
+const PaymentsPage = lazy(() =>
+  import('@/pages/payments/payments').then((m) => ({
+    default: m.PaymentsPage,
+  })),
+);
 const UserManagementPage = lazy(() =>
   import('@/pages/users/userManagement').then((m) => ({
     default: m.UserManagementPage,
@@ -97,6 +110,46 @@ export default function App() {
             element={
               <ProtectedRoute resource="quotations">
                 <QuotationDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.SURVEYS}
+            element={
+              <ProtectedRoute>
+                <SurveysPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/survey"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.SURVEYS} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.SURVEY_DETAILS}
+            element={
+              <ProtectedRoute>
+                <SurveyDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.PAYMENTS}
+            element={
+              <ProtectedRoute>
+                <PaymentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.PAYMENTS} replace />
               </ProtectedRoute>
             }
           />

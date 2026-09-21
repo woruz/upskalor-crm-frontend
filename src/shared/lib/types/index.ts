@@ -409,5 +409,74 @@ export interface UpdateQuotationPayload extends Partial<CreateQuotationPayload> 
   rejectionReason?: string;
 }
 
+// ─── Site Survey Types ────────────────────────────────────────────────────────
 
+export type SurveyStatus = 'Scheduled' | 'Completed' | 'In Progress' | 'Cancelled';
 
+export interface SiteSurvey {
+  id: string;
+  customerName: string;
+  surveyDateTime: string;
+  assignedTech: string;
+  assignedTechId?: string;
+  status: SurveyStatus;
+  leadId?: string;
+  mobileNumber?: string;
+  address?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ─── Payment & Invoicing Types ───────────────────────────────────────────────
+
+export type PaymentMode = 'UPI' | 'Net Banking' | 'Cheque' | 'Cash' | 'Credit/Debit Card';
+export type PaymentReceiptStatus = 'Successful' | 'Pending' | 'Failed';
+
+export interface PaymentReceipt {
+  id: string;
+  dateLogged: string;
+  projectName: string;
+  projectDetails: string;
+  amount: number;
+  mode: PaymentMode;
+  refNo: string;
+  status: PaymentReceiptStatus;
+  customerPhone?: string;
+}
+
+export interface OutstandingPayment {
+  id: string;
+  projectName: string;
+  customerName?: string;
+  totalDue: number;
+  received: number;
+  balance: number;
+  overdueAmount?: number;
+  status: 'In Progress' | 'Completed' | 'Pending' | 'Overdue' | string;
+}
+
+export type MilestoneStatus = 'Partially Received' | 'Pending' | 'Received' | 'Completed' | 'Overdue' | string;
+
+export interface PaymentMilestone {
+  id: string;
+  projectName: string;
+  milestoneName: string;
+  amountDue: number;
+  paidAmount: number;
+  dueDate: string;
+  status: MilestoneStatus;
+  percentage?: number;
+}
+
+export interface InvoiceRecord {
+  id: string;
+  invoiceNumber: string;
+  date: string;
+  projectName: string;
+  customerName: string;
+  grossAmount: number;
+  gstAmount: number;
+  netAmount: number;
+  status: 'Paid' | 'Unpaid' | 'Overdue';
+}
