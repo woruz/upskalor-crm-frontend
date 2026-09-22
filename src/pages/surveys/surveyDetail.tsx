@@ -1,11 +1,23 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '@/shared/components/ui/appLayout/appLayout';
+import { Button } from '@/shared/components/ui/button';
+import { Spinner } from '@/shared/components/ui/spinner/spinner';
 import { Dropdown } from '@/shared/components/ui/dropdown';
 import { useToast } from '@/shared/components/ui/toast/toast';
 import { useAuth } from '@/shared/lib/hooks/useAuth';
 import { ROUTES } from '@/shared/lib/config/routes';
-import type { SurveyStatus } from '@/shared/lib/types';
+import { surveyService } from '@/shared/lib/services/surveyService';
+import {
+  getSurveyById,
+  updateSurvey,
+  updateSurveyStatus,
+  assignSurveyTechnician,
+  uploadSurveyPhoto,
+  deleteSurveyPhoto,
+} from '@/shared/lib/api/surveysApi';
+import { extractApiError } from '@/shared/lib/api/authApi';
+import type { SurveyStatus, ShadingOption, ConnectionType, UpdateSurveyPayload } from '@/shared/lib/types';
 import styles from './surveyDetail.module.scss';
 
 // ─── Solar Rooftop Sample Thumbnail Graphic ───────────────────────────────────
@@ -134,25 +146,89 @@ export function SurveyDetailPage() {
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
 
   // ─── Section 1: Customer Details State ──────────────────────────────────────
-  const [customerDetails] = useState({
-    name: id === 'srv-1' ? 'Suresh' : id === 'srv-3' ? 'Rahul Desai' : id === 'srv-4' ? 'Fuzen' : 'Arun Sharma',
-    mobile: id === 'srv-1' ? '+91 98765 43210' : '+919012345678',
-    address: '1204, Lotus Business Park, New Link Road,',
-    monthlyBill: '₹3000',
-  });
+  const [customerDetails, setCustomerDetails] = useState<{
+    name: string;
+    mobile: string;
+    address: string;
+    monthlyBill: string;
+  } | null>(null);
 
   // ─── Section 2: Technical Specs State ───────────────────────────────────────
   const [assignTechnician, setAssignTechnician] = useState('Unassigned');
-  const [roofAreaSqft, setRoofAreaSqft] = useState('100');
-  const [shading, setShading] = useState('None');
-  const [connectionType, setConnectionType] = useState('Three-phase');
-  const [sanctionedLoadKw, setSanctionedLoadKw] = useState('3');
-  const [monthlyConsumptionKwh, setMonthlyConsumptionKwh] = useState('375');
-  const [recommendedKw, setRecommendedKw] = useState('3');
+  const [roofAreaSqft, setRoofAreaSqft] = useState('');
+  const [shading, setShading] = useState<string>('None');
+  const [connectionType, setConnectionType] = useState<string>('Three-phase');
+  const [sanctionedLoadKw, setSanctionedLoadKw] = useState('');
+  const [monthlyConsumptionKwh, setMonthlyConsumptionKwh] = useState('');
+  const [recommendedKw, setRecommendedKw] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
-  const [status, setStatus] = useState<SurveyStatus>('Completed');
+  const [status, setStatus] = useState<SurveyStatus>('Scheduled');
   const [notes, setNotes] = useState('');
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load live survey from backend API or local storage
+  const loadSurveyData = useCallback(async () => {
+    if (!id) return;
+    setIsLoading(true);
+    setNotFound(false);
+    try {
+      let s: any = null;
+      try {
+        const res = await getSurveyById(id);
+        s = res.data;
+      } catch {
+        s = surveyService.getSurveyById(id);
+      }
+
+      if (!s) {
+        setNotFound(true);
+        return;
+      }
+
+      setCustomerDetails({
+        name: s.customerName,
+        mobile: s.mobileNumber,
+        address: s.address || '-',
+        monthlyBill: s.lead?.monthlyBillAmount
+          ? `₹${s.lead.monthlyBillAmount.toLocaleString('en-IN')}`
+          : '-',
+      });
+      setAssignTechnician(s.assignedTech || 'Unassigned');
+      setRoofAreaSqft(s.roofAreaSqft ? String(s.roofAreaSqft) : '');
+      setShading(s.shading || 'None');
+      setConnectionType(s.connectionType || 'Three-phase');
+      setSanctionedLoadKw(s.sanctionedLoadKw ? String(s.sanctionedLoadKw) : '');
+      setMonthlyConsumptionKwh(s.monthlyConsumptionKwh ? String(s.monthlyConsumptionKwh) : '');
+      setRecommendedKw(s.recommendedKw ? String(s.recommendedKw) : '');
+      setLatitude(s.latitude || '');
+      setLongitude(s.longitude || '');
+      setStatus(s.status || 'Scheduled');
+      setNotes(s.notes || '');
+      if (s.photos && s.photos.length > 0) {
+        setPhotos(
+          s.photos.map((p: any) => ({
+            id: p.id,
+            url: p.fileUrl,
+            name: p.fileName,
+          }))
+        );
+      } else {
+        setPhotos([]);
+      }
+    } catch {
+      setNotFound(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadSurveyData();
+  }, [loadSurveyData]);
 
   // ─── Auto-calculate recommended kW from monthly consumption ────────────────
   useEffect(() => {
@@ -165,13 +241,6 @@ export function SurveyDetailPage() {
   }, [monthlyConsumptionKwh]);
 
   // ─── Section 3: Photo Gallery State ─────────────────────────────────────────
-  const [photos, setPhotos] = useState<PhotoItem[]>([
-    {
-      id: 'default-solar-roof',
-      isSample: true,
-      name: 'Rooftop_Solar_Panel_Layout.jpg',
-    },
-  ]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -215,49 +284,191 @@ export function SurveyDetailPage() {
   };
 
   // ─── Save Technical Specs ───────────────────────────────────────────────────
-  const handleSaveTechnicalSpecs = (e: React.FormEvent) => {
+  const handleSaveTechnicalSpecs = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!id) return;
+    setIsSaving(true);
+
+    const payload: UpdateSurveyPayload = {
+      roofAreaSqft: parseFloat(roofAreaSqft) || 0,
+      shading: shading as ShadingOption,
+      connectionType: connectionType as ConnectionType,
+      sanctionedLoadKw: parseFloat(sanctionedLoadKw) || 0,
+      monthlyConsumptionKwh: parseFloat(monthlyConsumptionKwh) || 0,
+      recommendedKw: parseFloat(recommendedKw) || 0,
+      latitude: latitude || undefined,
+      longitude: longitude || undefined,
+      notes: notes || undefined,
+      assignedTech: assignTechnician,
+    };
+
+    try {
+      const res = await updateSurvey(id, payload);
+      if (res.warning) {
+        addToast({
+          title: 'Technician Overlap Warning',
+          description: res.warning,
+          variant: 'warning',
+        });
+      }
+      addToast({
+        title: 'Technical Specs Saved',
+        description: 'Site survey technical parameters updated successfully.',
+        variant: 'success',
+      });
+    } catch {
+      surveyService.updateSurvey(id, payload);
+      addToast({
+        title: 'Technical Specs Saved',
+        description: 'Site survey parameters updated.',
+        variant: 'success',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // ─── Quick Status Transition Handler ────────────────────────────────────────
+  const handleStatusChange = async (newStatus: SurveyStatus) => {
+    setStatus(newStatus);
+    if (!id) return;
+    try {
+      await updateSurveyStatus(id, newStatus);
+      addToast({
+        title: 'Status Updated',
+        description: `Survey status changed to ${newStatus}.`,
+        variant: 'success',
+      });
+    } catch {
+      surveyService.updateSurvey(id, { status: newStatus });
+    }
+  };
+
+  // ─── Assign Technician Handler ──────────────────────────────────────────────
+  const handleTechnicianChange = async (newTech: string) => {
+    setAssignTechnician(newTech);
+    if (!id) return;
+    try {
+      const res = await assignSurveyTechnician(id, {
+        assignedTechId: null,
+        assignedTech: newTech,
+      });
+      if (res.warning) {
+        addToast({
+          title: 'Technician Overlap Warning',
+          description: res.warning,
+          variant: 'warning',
+        });
+      }
+    } catch {
+      surveyService.updateSurvey(id, { assignedTech: newTech });
+    }
+  };
+
+  // ─── Photo Upload & Handlers ────────────────────────────────────────────────
+  const handleFilesAdded = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach(async (file) => {
+      if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        const tempId = Math.random().toString(36).substring(2, 9);
+        const newPhotoItem: PhotoItem = {
+          id: tempId,
+          url,
+          name: file.name,
+        };
+        setPhotos((prev) => [...prev, newPhotoItem]);
+
+        if (id) {
+          try {
+            const res = await uploadSurveyPhoto(id, {
+              fileUrl: url,
+              fileName: file.name,
+              fileSizeBytes: file.size,
+              mimeType: file.type,
+            });
+            if (res.data?.id) {
+              setPhotos((prev) =>
+                prev.map((p) => (p.id === tempId ? { ...p, id: res.data.id } : p)),
+              );
+            }
+          } catch {
+            // Local state preserved
+          }
+        }
+      }
+    });
+
     addToast({
-      title: 'Technical Specs Saved',
-      description: 'Site survey technical parameters updated successfully.',
+      title: 'Photos Added',
+      description: `Uploaded ${files.length} photo(s) to gallery.`,
       variant: 'success',
     });
   };
 
-  // ─── Photo Upload & Handlers ────────────────────────────────────────────────
-  const handleFilesAdded = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-
-    const newPhotoItems: PhotoItem[] = [];
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith('image/')) {
-        const url = URL.createObjectURL(file);
-        newPhotoItems.push({
-          id: Math.random().toString(36).substring(2, 9),
-          url,
-          name: file.name,
-        });
-      }
-    });
-
-    if (newPhotoItems.length > 0) {
-      setPhotos((prev) => [...prev, ...newPhotoItems]);
-      addToast({
-        title: 'Photos Added',
-        description: `Uploaded ${newPhotoItems.length} photo(s) to gallery.`,
-        variant: 'success',
-      });
-    }
-  };
-
-  const handleRemovePhoto = (photoId: string) => {
+  const handleRemovePhoto = async (photoId: string) => {
     setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+    if (id && !photoId.startsWith('default-')) {
+      try {
+        await deleteSurveyPhoto(id, photoId);
+      } catch {
+        // photo removed locally
+      }
+    }
     addToast({
       title: 'Photo Removed',
       description: 'Photo was removed from the gallery.',
       variant: 'info',
     });
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout
+        headerProps={{
+          title: 'Survey Details',
+          breadcrumbs: [
+            { label: 'CRM' },
+            { label: 'Site Surveys', path: ROUTES.SURVEYS },
+          ],
+          userName: fullName || user?.email || 'User',
+          userRole: user?.role || 'user',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: '16px' }}>
+          <Spinner size="lg" />
+          <p style={{ color: 'var(--color-text-secondary)' }}>Loading survey details…</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (notFound || !customerDetails) {
+    return (
+      <AppLayout
+        headerProps={{
+          title: 'Survey Details',
+          breadcrumbs: [
+            { label: 'CRM' },
+            { label: 'Site Surveys', path: ROUTES.SURVEYS },
+          ],
+          userName: fullName || user?.email || 'User',
+          userRole: user?.role || 'user',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: '16px' }}>
+          <h3>Survey Not Found</h3>
+          <p style={{ color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
+            The requested site survey does not exist or has been removed.
+          </p>
+          <Button variant="primary" size="md" onClick={() => navigate(ROUTES.SURVEYS)}>
+            Back to Site Surveys
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout
@@ -338,7 +549,7 @@ export function SurveyDetailPage() {
               <Dropdown
                 options={TECHNICIAN_OPTIONS}
                 value={assignTechnician}
-                onChange={(val) => setAssignTechnician(String(val))}
+                onChange={(val) => handleTechnicianChange(String(val))}
               />
             </div>
 
@@ -455,7 +666,7 @@ export function SurveyDetailPage() {
               <Dropdown
                 options={STATUS_OPTIONS}
                 value={status}
-                onChange={(val) => setStatus(val as SurveyStatus)}
+                onChange={(val) => handleStatusChange(val as SurveyStatus)}
               />
             </div>
 
@@ -485,8 +696,11 @@ export function SurveyDetailPage() {
           <h2 className={styles.sectionHeader}>3. Photo Gallery</h2>
 
           <div className={styles.galleryContainer}>
-            {/* Existing Uploaded Photos */}
-            {photos.length > 0 && (
+            {photos.length === 0 ? (
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginBottom: '16px' }}>
+                No site survey photos uploaded yet. Drop photos below or click to browse.
+              </p>
+            ) : (
               <div className={styles.photosList}>
                 {photos.map((photo) => (
                   <div key={photo.id} className={styles.photoCard}>

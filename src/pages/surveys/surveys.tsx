@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { AppLayout } from '@/shared/components/ui/appLayout/appLayout';
 import { SearchInput } from '@/shared/components/ui/input';
@@ -6,67 +6,10 @@ import { Dropdown } from '@/shared/components/ui/dropdown';
 import { Table, type Column } from '@/shared/components/ui/table';
 import { useToast } from '@/shared/components/ui/toast/toast';
 import { useAuth } from '@/shared/lib/hooks/useAuth';
+import { listSurveys, deleteSurvey } from '@/shared/lib/api/surveysApi';
+import { surveyService } from '@/shared/lib/services/surveyService';
 import type { SiteSurvey, SurveyStatus } from '@/shared/lib/types';
 import styles from './surveys.module.scss';
-
-// ─── Initial Dummy Data Matching Screenshot ──────────────────────────────────
-
-const INITIAL_SURVEYS: SiteSurvey[] = [
-  {
-    id: 'srv-1',
-    customerName: 'Suresh',
-    surveyDateTime: '2026-06-18T15:57',
-    assignedTech: 'Unassigned',
-    status: 'Scheduled',
-    mobileNumber: '+91 98765 43210',
-    address: 'Plot 42, Sector 12, Gandhinagar, Gujarat',
-  },
-  {
-    id: 'srv-2',
-    customerName: 'Arun Sharma',
-    surveyDateTime: '2026-06-30T16:00',
-    assignedTech: 'Unassigned',
-    status: 'Completed',
-    mobileNumber: '+91 98234 56789',
-    address: 'B-204, Green Meadows, Pune, Maharashtra',
-  },
-  {
-    id: 'srv-3',
-    customerName: 'Rahul Desai',
-    surveyDateTime: '2026-07-01T10:12',
-    assignedTech: 'Unassigned',
-    status: 'Scheduled',
-    mobileNumber: '+91 97123 45678',
-    address: '15, Shanti Park, Ahmedabad, Gujarat',
-  },
-  {
-    id: 'srv-4',
-    customerName: 'Fuzen',
-    surveyDateTime: '2026-08-25T14:08',
-    assignedTech: 'Unassigned',
-    status: 'Scheduled',
-    mobileNumber: '+91 99001 23456',
-    address: 'Tech Hub Phase 2, Whitefield, Bengaluru',
-  },
-  {
-    id: 'srv-5',
-    customerName: 'Pooja Verma',
-    surveyDateTime: '2026-09-02T11:30',
-    assignedTech: 'Rajesh Kumar',
-    status: 'Completed',
-    mobileNumber: '+91 98111 22334',
-    address: 'Flat 102, Sunrise Towers, Mumbai, Maharashtra',
-  },
-  {
-    id: 'srv-6',
-    customerName: 'Kunal Patel',
-    surveyDateTime: '2026-09-10T14:00',
-    assignedTech: 'Vikram Singh',
-    status: 'Scheduled',
-    mobileNumber: '+91 94231 99887',
-    address: '78, Ring Road, Surat, Gujarat',
-  },
-];
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 
@@ -170,13 +113,40 @@ export function SurveysPage() {
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
 
   // Survey data state
-  const [surveys, setSurveys] = useState<SiteSurvey[]>(INITIAL_SURVEYS);
+  const [surveys, setSurveys] = useState<SiteSurvey[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [techFilter, setTechFilter] = useState('all');
   const [viewAllAdmin, setViewAllAdmin] = useState(true);
+
+  // Fetch surveys from backend API
+  const fetchSurveys = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await listSurveys({
+        page: 1,
+        limit: 100,
+        search: searchQuery.trim() || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        assignedTechId: techFilter !== 'all' ? techFilter : undefined,
+        viewAll: viewAllAdmin,
+      });
+      setSurveys(res.data || []);
+    } catch {
+      // In case backend is offline, read any real user-created surveys from local storage
+      const local = surveyService.getSurveys();
+      setSurveys(local);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchQuery, statusFilter, techFilter, viewAllAdmin]);
+
+  useEffect(() => {
+    fetchSurveys();
+  }, [fetchSurveys]);
 
   // Derive technician list dynamically from current data
   const technicianOptions = useMemo(() => {
@@ -239,8 +209,13 @@ export function SurveysPage() {
     navigate(`/surveys/${survey.id}`);
   };
 
-  const handleDeleteSurvey = (surveyId: string, customerName: string) => {
+  const handleDeleteSurvey = async (surveyId: string, customerName: string) => {
     if (window.confirm(`Are you sure you want to delete survey for "${customerName}"?`)) {
+      try {
+        await deleteSurvey(surveyId);
+      } catch {
+        surveyService.deleteSurvey(surveyId);
+      }
       setSurveys((prev) => prev.filter((s) => s.id !== surveyId));
       addToast({
         title: 'Survey Deleted',
@@ -430,7 +405,8 @@ export function SurveysPage() {
             data={filteredSurveys}
             rowKey="id"
             bordered={false}
-            emptyText="No surveys found matching the selected filters."
+            isLoading={isLoading}
+            emptyText="No surveys found. Schedule a site survey from a lead's details page."
           />
         </div>
       </div>

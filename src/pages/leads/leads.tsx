@@ -87,6 +87,7 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
   { id: 'CONTACTED', title: 'CONTACTED' },
   { id: 'FOLLOW_UP', title: 'FOLLOW UP' },
   { id: 'INTERESTED', title: 'INTERESTED' },
+  { id: 'SURVEY_SCHEDULED', title: 'SURVEY SCHEDULED' },
   { id: 'NOT_INTERESTED', title: 'NOT INTERESTED' },
   { id: 'CONVERTED', title: 'CONVERTED' },
   { id: 'LOST', title: 'LOST' },
@@ -96,27 +97,29 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
 
 const statusVariant = (status: LeadStatus | string) => {
   switch (status) {
-    case 'NEW':            return 'primary'   as const;
-    case 'CONTACTED':      return 'info'      as const;
-    case 'FOLLOW_UP':      return 'warning'   as const;
-    case 'INTERESTED':     return 'warning'   as const;
-    case 'NOT_INTERESTED': return 'secondary' as const;
-    case 'CONVERTED':      return 'success'   as const;
-    case 'LOST':           return 'error'     as const;
-    default:               return 'secondary' as const;
+    case 'NEW':              return 'primary'   as const;
+    case 'CONTACTED':        return 'info'      as const;
+    case 'FOLLOW_UP':        return 'warning'   as const;
+    case 'INTERESTED':       return 'warning'   as const;
+    case 'SURVEY_SCHEDULED': return 'primary'   as const;
+    case 'NOT_INTERESTED':   return 'secondary' as const;
+    case 'CONVERTED':        return 'success'   as const;
+    case 'LOST':             return 'error'     as const;
+    default:                 return 'secondary' as const;
   }
 };
 
 const formatStatusLabel = (status: LeadStatus | string): string => {
   switch (status) {
-    case 'NEW':            return 'New';
-    case 'CONTACTED':      return 'Contacted';
-    case 'FOLLOW_UP':      return 'Follow Up';
-    case 'INTERESTED':     return 'Interested';
-    case 'NOT_INTERESTED': return 'Not Interested';
-    case 'CONVERTED':      return 'Converted';
-    case 'LOST':           return 'Lost';
-    default:               return String(status);
+    case 'NEW':              return 'New';
+    case 'CONTACTED':        return 'Contacted';
+    case 'FOLLOW_UP':        return 'Follow Up';
+    case 'INTERESTED':       return 'Interested';
+    case 'SURVEY_SCHEDULED': return 'Survey Scheduled';
+    case 'NOT_INTERESTED':   return 'Not Interested';
+    case 'CONVERTED':        return 'Converted';
+    case 'LOST':             return 'Lost';
+    default:                 return String(status);
   }
 };
 
@@ -244,6 +247,14 @@ export function LeadsPage() {
         variant: 'success',
       });
     } catch (error) {
+      if (newStatus === 'SURVEY_SCHEDULED') {
+        addToast({
+          title: 'Status Updated (Local)',
+          description: `Moved "${originalLead.customerName}" to Survey Scheduled.`,
+          variant: 'info',
+        });
+        return;
+      }
       // Revert optimistic update
       setLeads((prev) =>
         prev.map((l) => (l.id === leadId ? { ...l, status: originalLead.status } : l)),
@@ -400,14 +411,15 @@ export function LeadsPage() {
           setPage(1);
         }}
         options={[
-          { label: 'All Statuses',   value: 'all' },
-          { label: 'New',            value: 'NEW' },
-          { label: 'Contacted',      value: 'CONTACTED' },
-          { label: 'Follow Up',      value: 'FOLLOW_UP' },
-          { label: 'Interested',     value: 'INTERESTED' },
-          { label: 'Not Interested', value: 'NOT_INTERESTED' },
-          { label: 'Converted',      value: 'CONVERTED' },
-          { label: 'Lost',           value: 'LOST' },
+          { label: 'All Statuses',      value: 'all' },
+          { label: 'New',               value: 'NEW' },
+          { label: 'Contacted',         value: 'CONTACTED' },
+          { label: 'Follow Up',         value: 'FOLLOW_UP' },
+          { label: 'Interested',        value: 'INTERESTED' },
+          { label: 'Survey Scheduled',  value: 'SURVEY_SCHEDULED' },
+          { label: 'Not Interested',    value: 'NOT_INTERESTED' },
+          { label: 'Converted',         value: 'CONVERTED' },
+          { label: 'Lost',              value: 'LOST' },
         ]}
       />
       <Dropdown

@@ -125,6 +125,7 @@ export type LeadStatus =
   | 'CONTACTED'
   | 'FOLLOW_UP'
   | 'INTERESTED'
+  | 'SURVEY_SCHEDULED'
   | 'NOT_INTERESTED'
   | 'CONVERTED'
   | 'LOST';
@@ -411,21 +412,93 @@ export interface UpdateQuotationPayload extends Partial<CreateQuotationPayload> 
 
 // ─── Site Survey Types ────────────────────────────────────────────────────────
 
-export type SurveyStatus = 'Scheduled' | 'Completed' | 'In Progress' | 'Cancelled';
+export type SurveyStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled';
+export type ShadingOption = 'None' | 'Partial' | 'Heavy';
+export type ConnectionType = 'Three-phase' | 'Single-phase';
+
+export interface SiteSurveyPhoto {
+  id: string;
+  surveyId: string;
+  fileUrl: string;
+  fileName: string;
+  fileSizeBytes?: number;
+  mimeType?: string;
+  uploadedBy?: string;
+  createdAt?: string;
+}
 
 export interface SiteSurvey {
   id: string;
+  leadId?: string | null;
   customerName: string;
+  mobileNumber: string;
+  address?: string | null;
   surveyDateTime: string;
+  assignedTechId?: string | null;
   assignedTech: string;
-  assignedTechId?: string;
   status: SurveyStatus;
-  leadId?: string;
-  mobileNumber?: string;
-  address?: string;
-  notes?: string;
+  roofAreaSqft?: number | null;
+  shading?: ShadingOption | null;
+  connectionType?: ConnectionType | null;
+  sanctionedLoadKw?: number | null;
+  monthlyConsumptionKwh?: number | null;
+  recommendedKw?: number | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  notes?: string | null;
+  createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
+  lead?: {
+    id: string;
+    customerName: string;
+    mobileNumber: string;
+    city?: string | null;
+    state?: string | null;
+    monthlyBillAmount?: number | null;
+    status: LeadStatus;
+  } | null;
+  photos?: SiteSurveyPhoto[];
+}
+
+export interface CreateSurveyPayload {
+  leadId?: string;
+  customerName?: string;
+  mobileNumber?: string;
+  address?: string;
+  surveyDateTime: string;
+  assignedTechId?: string | null;
+  assignedTech?: string;
+  roofAreaSqft?: number;
+  shading?: ShadingOption;
+  connectionType?: ConnectionType;
+  sanctionedLoadKw?: number;
+  monthlyConsumptionKwh?: number;
+  recommendedKw?: number;
+  latitude?: string;
+  longitude?: string;
+  notes?: string;
+}
+
+export type UpdateSurveyPayload = Partial<CreateSurveyPayload>;
+
+export interface SurveyFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: SurveyStatus | string;
+  assignedTechId?: string;
+  leadId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  sort?: 'surveyDateTime' | 'createdAt' | 'customerName';
+  direction?: 'asc' | 'desc';
+  viewAll?: boolean;
+}
+
+export interface SurveysResponse {
+  data: SiteSurvey[];
+  pagination: PaginationInfo;
 }
 
 // ─── Payment & Invoicing Types ───────────────────────────────────────────────
@@ -443,6 +516,12 @@ export interface PaymentReceipt {
   refNo: string;
   status: PaymentReceiptStatus;
   customerPhone?: string;
+  projectId?: string;
+  milestoneId?: string | null;
+  recordedBy?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface OutstandingPayment {
@@ -456,27 +535,109 @@ export interface OutstandingPayment {
   status: 'In Progress' | 'Completed' | 'Pending' | 'Overdue' | string;
 }
 
-export type MilestoneStatus = 'Partially Received' | 'Pending' | 'Received' | 'Completed' | 'Overdue' | string;
+export type MilestoneStatus =
+  | 'Partially Received'
+  | 'Pending'
+  | 'Received'
+  | 'Completed'
+  | 'Overdue'
+  | string;
 
 export interface PaymentMilestone {
   id: string;
+  projectId?: string;
   projectName: string;
   milestoneName: string;
   amountDue: number;
   paidAmount: number;
-  dueDate: string;
+  dueDate: string | null;
   status: MilestoneStatus;
-  percentage?: number;
+  percentage?: number | null;
 }
+
+export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Overdue' | 'Cancelled' | string;
 
 export interface InvoiceRecord {
   id: string;
   invoiceNumber: string;
   date: string;
+  invoiceDate?: string;
   projectName: string;
-  customerName: string;
+  customerName?: string;
   grossAmount: number;
   gstAmount: number;
+  gstPercentage?: number;
   netAmount: number;
-  status: 'Paid' | 'Unpaid' | 'Overdue';
+  status: InvoiceStatus;
+  dueDate?: string | null;
+  projectId?: string;
+  receiptId?: string | null;
 }
+
+export interface PaymentDashboardKpis {
+  totalOutstanding: number;
+  collectionsThisMonth: number;
+  overdueReceivables: number;
+  totalProjects: number;
+  totalReceipts: number;
+  collectionsTrend?: Array<{ month: string; amount: number }>;
+}
+
+export interface RecordPaymentPayload {
+  milestoneId: string;
+  amount: number;
+  mode: PaymentMode;
+  referenceNumber?: string;
+  paymentDate?: string;
+  notes?: string;
+  autoGenerateInvoice?: boolean;
+}
+
+export interface ReceiptFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: PaymentReceiptStatus;
+  mode?: PaymentMode;
+  projectId?: string;
+  sortBy?: 'paymentDate' | 'amount';
+  sortOrder?: 'asc' | 'desc';
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface MilestoneFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: MilestoneStatus;
+  projectId?: string;
+  sortBy?: 'dueDate' | 'amountDue' | 'projectName';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface OutstandingFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: 'balance' | 'totalDue' | 'projectName';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface InvoiceFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: InvoiceStatus;
+  projectId?: string;
+  sortBy?: 'invoiceDate' | 'netAmount' | 'invoiceNumber';
+  sortOrder?: 'asc' | 'desc';
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: PaginationInfo;
+}
+

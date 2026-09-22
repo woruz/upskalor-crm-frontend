@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { AppLayout } from '@/shared/components/ui/appLayout/appLayout';
 import { Input, SearchInput } from '@/shared/components/ui/input';
@@ -14,162 +14,20 @@ import type {
   PaymentMilestone,
   InvoiceRecord,
   PaymentMode,
+  PaymentDashboardKpis,
 } from '@/shared/lib/types';
+import {
+  getPaymentDashboardKpis,
+  listReceipts,
+  listOutstandingPayments,
+  listPaymentMilestones,
+  listInvoices,
+  recordPayment,
+  deleteProjectMilestone,
+  downloadReceiptPdf,
+  shareReceiptWhatsApp,
+} from '@/shared/lib/api/paymentsApi';
 import styles from './payments.module.scss';
-
-// ─── Dummy Data Matching Screenshot Exactly ──────────────────────────────────
-
-const INITIAL_RECEIPTS: PaymentReceipt[] = [
-  {
-    id: 'rcpt-1',
-    dateLogged: '21 Sep 2026, 06:15 PM',
-    projectName: 'Arun Sharma - 3kW - 2026',
-    projectDetails: 'Delivery Payment',
-    amount: 10000,
-    mode: 'UPI',
-    refNo: '-',
-    status: 'Successful',
-    customerPhone: '+919012345678',
-  },
-  {
-    id: 'rcpt-2',
-    dateLogged: '16 Sep 2026, 04:33 PM',
-    projectName: 'Arun Sharma - 3kW - 2026',
-    projectDetails: 'Advance Payment',
-    amount: 56330,
-    mode: 'UPI',
-    refNo: '-',
-    status: 'Successful',
-    customerPhone: '+919012345678',
-  },
-  {
-    id: 'rcpt-3',
-    dateLogged: '12 Sep 2026, 02:45 PM',
-    projectName: 'Suresh - 5kW - 2026',
-    projectDetails: 'Advance Payment',
-    amount: 45000,
-    mode: 'Net Banking',
-    refNo: 'HDFC9821034',
-    status: 'Successful',
-    customerPhone: '+919876543210',
-  },
-  {
-    id: 'rcpt-4',
-    dateLogged: '05 Sep 2026, 11:20 AM',
-    projectName: 'Rahul Desai - 4kW - 2026',
-    projectDetails: 'Commissioning Payment',
-    amount: 25000,
-    mode: 'Cheque',
-    refNo: 'CHQ-882109',
-    status: 'Successful',
-    customerPhone: '+919712345678',
-  },
-];
-
-const INITIAL_OUTSTANDING: OutstandingPayment[] = [
-  {
-    id: 'out-1',
-    projectName: 'Rahul Desai - 3kW - 2026',
-    customerName: 'Rahul Desai',
-    totalDue: 221100,
-    received: 0,
-    balance: 221100,
-    overdueAmount: 221100,
-    status: 'In Progress',
-  },
-  {
-    id: 'out-2',
-    projectName: 'Arun Sharma - 3kW - 2026',
-    customerName: 'Arun Sharma',
-    totalDue: 221100,
-    received: 66330,
-    balance: 154770,
-    overdueAmount: 154770,
-    status: 'In Progress',
-  },
-];
-
-const INITIAL_SCHEDULES: PaymentMilestone[] = [
-  {
-    id: 'sch-1',
-    projectName: 'Arun Sharma - 3kW - 2026',
-    milestoneName: 'Delivery Payment',
-    amountDue: 110550,
-    paidAmount: 10000,
-    dueDate: '07 Jul 2026',
-    status: 'Partially Received',
-  },
-  {
-    id: 'sch-2',
-    projectName: 'Arun Sharma - 3kW - 2026',
-    milestoneName: 'Commissioning Payment',
-    amountDue: 44220,
-    paidAmount: 0,
-    dueDate: '07 Jul 2026',
-    status: 'Pending',
-  },
-  {
-    id: 'sch-3',
-    projectName: 'Rahul Desai - 3kW - 2026',
-    milestoneName: 'Delivery Payment',
-    amountDue: 110550,
-    paidAmount: 0,
-    dueDate: '08 Jul 2026',
-    status: 'Pending',
-  },
-  {
-    id: 'sch-4',
-    projectName: 'Rahul Desai - 3kW - 2026',
-    milestoneName: 'Commissioning Payment',
-    amountDue: 44220,
-    paidAmount: 0,
-    dueDate: '08 Jul 2026',
-    status: 'Pending',
-  },
-  {
-    id: 'sch-5',
-    projectName: 'Rahul Desai - 3kW - 2026',
-    milestoneName: 'Advance Payment',
-    amountDue: 66330,
-    paidAmount: 0,
-    dueDate: '08 Jul 2026',
-    status: 'Pending',
-  },
-  {
-    id: 'sch-6',
-    projectName: 'Arun Sharma - 3kW - 2026',
-    milestoneName: 'Advance Payment',
-    amountDue: 66330,
-    paidAmount: 56330,
-    dueDate: '07 Jul 2026',
-    status: 'Received',
-  },
-];
-
-const INITIAL_INVOICES: InvoiceRecord[] = [
-  {
-    id: 'inv-1',
-    invoiceNumber: 'INV-2026-0882',
-    date: '21 Sep 2026',
-    projectName: 'Arun Sharma - 3kW - 2026',
-    customerName: 'Arun Sharma',
-    grossAmount: 10000,
-    gstAmount: 1800,
-    netAmount: 11800,
-    status: 'Paid',
-  },
-  {
-    id: 'inv-2',
-    invoiceNumber: 'INV-2026-0854',
-    date: '16 Sep 2026',
-    projectName: 'Arun Sharma - 3kW - 2026',
-    customerName: 'Arun Sharma',
-    grossAmount: 47737,
-    gstAmount: 8593,
-    netAmount: 56330,
-    status: 'Paid',
-  },
-];
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 
@@ -250,19 +108,59 @@ const TrashIcon = () => (
     aria-hidden="true"
   >
     <polyline points="3 6 5 6 21 6" />
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    <line x1="10" y1="11" x2="10" y2="17" />
-    <line x1="14" y1="11" x2="14" y2="17" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+    <path d="M10 11v6" />
+    <path d="M14 11v6" />
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
   </svg>
 );
 
-// ─── Filter Options ───────────────────────────────────────────────────────────
+// ─── Date Formatter Helpers ──────────────────────────────────────────────────
+
+function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatDateOnly(dateStr?: string | null): string {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+// ─── Filter Dropdown Options ─────────────────────────────────────────────────
 
 const STATUS_FILTER_OPTIONS = [
   { label: 'All Statuses', value: 'all' },
   { label: 'Successful', value: 'Successful' },
   { label: 'Pending', value: 'Pending' },
   { label: 'Failed', value: 'Failed' },
+  { label: 'Partially Received', value: 'Partially Received' },
+  { label: 'Received', value: 'Received' },
+  { label: 'Overdue', value: 'Overdue' },
+  { label: 'Paid', value: 'Paid' },
+  { label: 'Unpaid', value: 'Unpaid' },
 ];
 
 const MODE_FILTER_OPTIONS = [
@@ -271,12 +169,11 @@ const MODE_FILTER_OPTIONS = [
   { label: 'Net Banking', value: 'Net Banking' },
   { label: 'Cheque', value: 'Cheque' },
   { label: 'Cash', value: 'Cash' },
+  { label: 'Credit/Debit Card', value: 'Credit/Debit Card' },
 ];
 
 const SORT_OPTIONS = [
   { label: 'Sort By...', value: 'all' },
-  { label: 'Latest First', value: 'date:desc' },
-  { label: 'Oldest First', value: 'date:asc' },
   { label: 'Amount: High to Low', value: 'amount:desc' },
   { label: 'Amount: Low to High', value: 'amount:asc' },
 ];
@@ -315,11 +212,14 @@ export function PaymentsPage() {
   const [modeFilter, setModeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('all');
 
-  // Data States
-  const [receipts, setReceipts] = useState<PaymentReceipt[]>(INITIAL_RECEIPTS);
-  const [outstanding] = useState<OutstandingPayment[]>(INITIAL_OUTSTANDING);
-  const [schedules, setSchedules] = useState<PaymentMilestone[]>(INITIAL_SCHEDULES);
-  const [invoices] = useState<InvoiceRecord[]>(INITIAL_INVOICES);
+  // Live Data States
+  const [kpis, setKpis] = useState<PaymentDashboardKpis | null>(null);
+  const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
+  const [outstanding, setOutstanding] = useState<OutstandingPayment[]>([]);
+  const [schedules, setSchedules] = useState<PaymentMilestone[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Record Payment Modal State
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -327,13 +227,113 @@ export function PaymentsPage() {
   const [recordAmount, setRecordAmount] = useState<string>('');
   const [recordMode, setRecordMode] = useState<PaymentMode>('UPI');
   const [recordRefNo, setRecordRefNo] = useState<string>('');
-  const [recordDate, setRecordDate] = useState<string>('22 Sep 2026');
+  const [recordDate, setRecordDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   // Milestone Info Modal State
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [infoMilestone, setInfoMilestone] = useState<PaymentMilestone | null>(null);
 
-  // Filtered Outstanding Data
+  // ─── API Data Fetching ─────────────────────────────────────────────────────
+
+  const fetchKpis = useCallback(async () => {
+    try {
+      const res = await getPaymentDashboardKpis();
+      if (res?.data) {
+        setKpis(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load payment KPIs:', err);
+    }
+  }, []);
+
+  const fetchReceipts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await listReceipts({ limit: 100 });
+      setReceipts(res?.data || []);
+    } catch (err: any) {
+      console.error('Failed to load receipts:', err);
+      addToast({
+        title: 'Error Loading Receipts',
+        description: err.response?.data?.error?.message || err.message || 'Could not fetch receipts.',
+        variant: 'error',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast]);
+
+  const fetchOutstanding = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await listOutstandingPayments({ limit: 100 });
+      setOutstanding(res?.data || []);
+    } catch (err: any) {
+      console.error('Failed to load outstanding payments:', err);
+      addToast({
+        title: 'Error Loading Outstanding Payments',
+        description: err.response?.data?.error?.message || err.message || 'Could not fetch outstanding payments.',
+        variant: 'error',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast]);
+
+  const fetchSchedules = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await listPaymentMilestones({ limit: 100 });
+      setSchedules(res?.data || []);
+    } catch (err: any) {
+      console.error('Failed to load payment milestones:', err);
+      addToast({
+        title: 'Error Loading Schedules',
+        description: err.response?.data?.error?.message || err.message || 'Could not fetch milestone schedules.',
+        variant: 'error',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast]);
+
+  const fetchInvoices = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await listInvoices({ limit: 100 });
+      setInvoices(res?.data || []);
+    } catch (err: any) {
+      console.error('Failed to load invoices:', err);
+      addToast({
+        title: 'Error Loading Invoices',
+        description: err.response?.data?.error?.message || err.message || 'Could not fetch invoices.',
+        variant: 'error',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast]);
+
+  // Initial load: KPIs
+  useEffect(() => {
+    fetchKpis();
+  }, [fetchKpis]);
+
+  // Tab change: fetch active tab data
+  useEffect(() => {
+    if (activeTab === 'Receipt History') {
+      fetchReceipts();
+    } else if (activeTab === 'Outstanding') {
+      fetchOutstanding();
+    } else if (activeTab === 'Schedules') {
+      fetchSchedules();
+    } else if (activeTab === 'Invoices') {
+      fetchInvoices();
+    }
+  }, [activeTab, fetchReceipts, fetchOutstanding, fetchSchedules, fetchInvoices]);
+
+  // ─── Filtered Data ─────────────────────────────────────────────────────────
+
   const filteredOutstanding = useMemo(() => {
     if (!searchQuery.trim()) return outstanding;
     const q = searchQuery.trim().toLowerCase();
@@ -344,9 +344,8 @@ export function PaymentsPage() {
     );
   }, [outstanding, searchQuery]);
 
-  // Filtered Schedules Data
   const filteredSchedules = useMemo(() => {
-    let result = schedules.filter((s) => {
+    return schedules.filter((s) => {
       if (searchQuery.trim()) {
         const q = searchQuery.trim().toLowerCase();
         const matchesProject = s.projectName.toLowerCase().includes(q);
@@ -358,31 +357,25 @@ export function PaymentsPage() {
       }
       return true;
     });
-    return result;
   }, [schedules, searchQuery, statusFilter]);
 
-  // Filtered Receipts Data
   const filteredReceipts = useMemo(() => {
     let result = receipts.filter((r) => {
-      // 1. Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.trim().toLowerCase();
         const matchesProject = r.projectName.toLowerCase().includes(q);
         const matchesDetails = r.projectDetails.toLowerCase().includes(q);
         if (!matchesProject && !matchesDetails) return false;
       }
-      // 2. Status Filter
       if (statusFilter !== 'all' && r.status !== statusFilter) {
         return false;
       }
-      // 3. Mode Filter
       if (modeFilter !== 'all' && r.mode !== modeFilter) {
         return false;
       }
       return true;
     });
 
-    // 4. Sorting
     if (sortBy === 'amount:desc') {
       result = [...result].sort((a, b) => b.amount - a.amount);
     } else if (sortBy === 'amount:asc') {
@@ -391,6 +384,22 @@ export function PaymentsPage() {
 
     return result;
   }, [receipts, searchQuery, statusFilter, modeFilter, sortBy]);
+
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase();
+        const matchesProj = inv.projectName.toLowerCase().includes(q);
+        const matchesInvNum = inv.invoiceNumber.toLowerCase().includes(q);
+        const matchesCust = (inv.customerName || '').toLowerCase().includes(q);
+        if (!matchesProj && !matchesInvNum && !matchesCust) return false;
+      }
+      if (statusFilter !== 'all' && inv.status !== statusFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [invoices, searchQuery, statusFilter]);
 
   const hasActiveFilters =
     searchQuery.trim() !== '' || statusFilter !== 'all' || modeFilter !== 'all' || sortBy !== 'all';
@@ -404,20 +413,46 @@ export function PaymentsPage() {
 
   // ─── Actions Handlers ───────────────────────────────────────────────────────
 
-  const handleShareWhatsApp = (receipt: PaymentReceipt) => {
-    addToast({
-      title: 'WhatsApp Receipt Sent',
-      description: `Receipt for ₹${receipt.amount.toLocaleString('en-IN')} sent to ${receipt.customerPhone || 'Customer'}.`,
-      variant: 'success',
-    });
+  const handleShareWhatsApp = async (receipt: PaymentReceipt) => {
+    try {
+      const res = await shareReceiptWhatsApp(receipt.id);
+      if (res?.data?.whatsappUrl) {
+        window.open(res.data.whatsappUrl, '_blank', 'noopener,noreferrer');
+      }
+      addToast({
+        title: 'WhatsApp Share Link Generated',
+        description: `Receipt for ₹${receipt.amount.toLocaleString('en-IN')} ready to send.`,
+        variant: 'success',
+      });
+    } catch (err: any) {
+      addToast({
+        title: 'Share Failed',
+        description: err.response?.data?.error?.message || err.message || 'Could not generate WhatsApp share link.',
+        variant: 'error',
+      });
+    }
   };
 
-  const handlePrintReceipt = (receipt: PaymentReceipt) => {
-    addToast({
-      title: 'Preparing Receipt PDF',
-      description: `Printing payment receipt for ${receipt.projectName}...`,
-      variant: 'info',
-    });
+  const handlePrintReceipt = async (receipt: PaymentReceipt) => {
+    try {
+      addToast({
+        title: 'Downloading Receipt PDF',
+        description: `Generating PDF for ${receipt.projectName}...`,
+        variant: 'info',
+      });
+      await downloadReceiptPdf(receipt.id);
+      addToast({
+        title: 'PDF Downloaded',
+        description: 'Payment receipt downloaded successfully.',
+        variant: 'success',
+      });
+    } catch (err: any) {
+      addToast({
+        title: 'Download Failed',
+        description: err.response?.data?.error?.message || err.message || 'Could not download receipt PDF.',
+        variant: 'error',
+      });
+    }
   };
 
   // ─── Schedule Actions Handlers ──────────────────────────────────────────────
@@ -428,11 +463,11 @@ export function PaymentsPage() {
     setRecordAmount(String(balanceDue));
     setRecordMode('UPI');
     setRecordRefNo('');
-    setRecordDate('22 Sep 2026');
+    setRecordDate(new Date().toISOString().split('T')[0]);
     setPaymentModalOpen(true);
   };
 
-  const handleConfirmRecordPayment = () => {
+  const handleConfirmRecordPayment = async () => {
     if (!selectedMilestone) return;
     const paymentAmt = parseFloat(recordAmount);
     if (isNaN(paymentAmt) || paymentAmt <= 0) {
@@ -444,52 +479,81 @@ export function PaymentsPage() {
       return;
     }
 
-    const updatedPaid = (selectedMilestone.paidAmount || 0) + paymentAmt;
-    const updatedStatus = updatedPaid >= selectedMilestone.amountDue ? 'Received' : 'Partially Received';
+    if (!selectedMilestone.projectId) {
+      addToast({
+        title: 'Project Missing',
+        description: 'Could not find the associated project ID for this milestone.',
+        variant: 'error',
+      });
+      return;
+    }
 
-    // 1. Update schedule milestone
-    setSchedules((prev) =>
-      prev.map((s) =>
-        s.id === selectedMilestone.id
-          ? {
-              ...s,
-              paidAmount: updatedPaid,
-              status: updatedStatus,
-            }
-          : s,
-      ),
-    );
+    try {
+      setIsSubmitting(true);
+      await recordPayment(selectedMilestone.projectId, {
+        milestoneId: selectedMilestone.id,
+        amount: paymentAmt,
+        mode: recordMode,
+        referenceNumber: recordRefNo.trim() || undefined,
+        paymentDate: recordDate ? new Date(recordDate).toISOString() : new Date().toISOString(),
+      });
 
-    // 2. Add to receipts
-    const newReceipt: PaymentReceipt = {
-      id: `rcpt-${Date.now()}`,
-      dateLogged: `${recordDate}, 12:00 PM`,
-      projectName: selectedMilestone.projectName,
-      projectDetails: selectedMilestone.milestoneName,
-      amount: paymentAmt,
-      mode: recordMode,
-      refNo: recordRefNo.trim() || '-',
-      status: 'Successful',
-    };
-    setReceipts((prev) => [newReceipt, ...prev]);
+      addToast({
+        title: 'Payment Recorded',
+        description: `₹${paymentAmt.toLocaleString('en-IN')} recorded for ${selectedMilestone.milestoneName} via ${recordMode}.`,
+        variant: 'success',
+      });
 
-    addToast({
-      title: 'Payment Recorded',
-      description: `₹${paymentAmt.toLocaleString('en-IN')} recorded for ${selectedMilestone.milestoneName} via ${recordMode}.`,
-      variant: 'success',
-    });
+      setPaymentModalOpen(false);
+      setSelectedMilestone(null);
 
-    setPaymentModalOpen(false);
-    setSelectedMilestone(null);
+      // Refresh data and KPI numbers
+      fetchKpis();
+      if (activeTab === 'Schedules') fetchSchedules();
+      else if (activeTab === 'Receipt History') fetchReceipts();
+      else if (activeTab === 'Outstanding') fetchOutstanding();
+    } catch (err: any) {
+      console.error('Failed to record payment:', err);
+      addToast({
+        title: 'Record Payment Failed',
+        description: err.response?.data?.error?.message || err.message || 'Failed to record payment.',
+        variant: 'error',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteMilestone = (milestone: PaymentMilestone) => {
-    setSchedules((prev) => prev.filter((s) => s.id !== milestone.id));
-    addToast({
-      title: 'Milestone Deleted',
-      description: `Schedule for "${milestone.milestoneName}" was deleted.`,
-      variant: 'info',
-    });
+  const handleDeleteMilestone = async (milestone: PaymentMilestone) => {
+    if (!milestone.projectId) {
+      addToast({
+        title: 'Cannot Delete Milestone',
+        description: 'Missing associated project ID.',
+        variant: 'error',
+      });
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete "${milestone.milestoneName}"?`)) {
+      return;
+    }
+
+    try {
+      await deleteProjectMilestone(milestone.projectId, milestone.id);
+      addToast({
+        title: 'Milestone Deleted',
+        description: `Schedule for "${milestone.milestoneName}" was deleted.`,
+        variant: 'info',
+      });
+      fetchSchedules();
+      fetchKpis();
+    } catch (err: any) {
+      addToast({
+        title: 'Delete Failed',
+        description: err.response?.data?.error?.message || err.message || 'Could not delete milestone.',
+        variant: 'error',
+      });
+    }
   };
 
   const handleViewMilestoneInfo = (milestone: PaymentMilestone) => {
@@ -505,7 +569,7 @@ export function PaymentsPage() {
       header: 'DATE LOGGED',
       sortable: true,
       minWidth: '200px',
-      render: (val) => <span className={styles.dateLoggedCell}>{val}</span>,
+      render: (val) => <span className={styles.dateLoggedCell}>{formatDate(val)}</span>,
     },
     {
       key: 'projectName',
@@ -514,12 +578,7 @@ export function PaymentsPage() {
       minWidth: '240px',
       render: (_, row) => (
         <div className={styles.projectCell}>
-          <span
-            className={styles.projectName}
-            onClick={() => navigate('/surveys')}
-            role="button"
-            tabIndex={0}
-          >
+          <span className={styles.projectName}>
             {row.projectName}
           </span>
           <span className={styles.projectSubtitle}>{row.projectDetails}</span>
@@ -533,7 +592,7 @@ export function PaymentsPage() {
       minWidth: '130px',
       render: (val: number) => (
         <span className={styles.amountCell}>
-          ₹{val.toLocaleString('en-IN')}
+          ₹{(val || 0).toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -547,7 +606,7 @@ export function PaymentsPage() {
       key: 'refNo',
       header: 'REF NO',
       minWidth: '100px',
-      render: (val: string) => <span className={styles.refNoCell}>{val}</span>,
+      render: (val: string) => <span className={styles.refNoCell}>{val || '-'}</span>,
     },
     {
       key: 'actions',
@@ -569,8 +628,8 @@ export function PaymentsPage() {
             type="button"
             className={styles.printBtn}
             onClick={() => handlePrintReceipt(row)}
-            title="Print Receipt"
-            aria-label="Print Receipt"
+            title="Download Receipt PDF"
+            aria-label="Download Receipt PDF"
           >
             <PrintReceiptIcon />
           </button>
@@ -587,15 +646,13 @@ export function PaymentsPage() {
       header: 'PROJECT NAME',
       sortable: true,
       minWidth: '220px',
-      render: (val) => (
-        <span
-          className={styles.projectName}
-          onClick={() => navigate('/surveys')}
-          role="button"
-          tabIndex={0}
-        >
-          {val}
-        </span>
+      render: (val, row) => (
+        <div className={styles.projectCell}>
+          <span className={styles.projectName}>{val}</span>
+          {row.customerName && (
+            <span className={styles.projectSubtitle}>{row.customerName}</span>
+          )}
+        </div>
       ),
     },
     {
@@ -605,7 +662,7 @@ export function PaymentsPage() {
       minWidth: '140px',
       render: (val: number) => (
         <span className={styles.totalDueCell}>
-          ₹{val.toLocaleString('en-IN')}
+          ₹{(val || 0).toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -616,7 +673,7 @@ export function PaymentsPage() {
       minWidth: '130px',
       render: (val: number) => (
         <span className={styles.receivedCell}>
-          ₹{val.toLocaleString('en-IN')}
+          ₹{(val || 0).toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -628,11 +685,13 @@ export function PaymentsPage() {
       render: (val: number, row) => (
         <div className={styles.balanceCell}>
           <span className={styles.balanceAmount}>
-            ₹{val.toLocaleString('en-IN')}
+            ₹{(val || 0).toLocaleString('en-IN')}
           </span>
-          <span className={styles.overdueLabel}>
-            (₹{(row.overdueAmount || val).toLocaleString('en-IN')} Overdue)
-          </span>
+          {row.overdueAmount !== undefined && row.overdueAmount > 0 && (
+            <span className={styles.overdueLabel}>
+              (₹{row.overdueAmount.toLocaleString('en-IN')} Overdue)
+            </span>
+          )}
         </div>
       ),
     },
@@ -640,9 +699,20 @@ export function PaymentsPage() {
       key: 'status',
       header: 'STATUS',
       minWidth: '130px',
-      render: (val: string) => (
-        <span className={styles.inProgressBadge}>{val}</span>
-      ),
+      render: (val: string) => {
+        const isCompleted = val === 'Completed';
+        const isOverdue = val === 'Overdue';
+        const badgeStyle = isCompleted
+          ? { color: '#16a34a', borderColor: '#bbf7d0', backgroundColor: '#f0fdf4' }
+          : isOverdue
+          ? { color: '#dc2626', borderColor: '#fecaca', backgroundColor: '#fef2f2' }
+          : undefined;
+        return (
+          <span className={styles.inProgressBadge} style={badgeStyle}>
+            {val}
+          </span>
+        );
+      },
     },
     {
       key: 'actions',
@@ -663,14 +733,7 @@ export function PaymentsPage() {
       minWidth: '240px',
       render: (_, row) => (
         <div className={styles.projectCell}>
-          <span
-            className={styles.projectName}
-            onClick={() => navigate('/surveys')}
-            role="button"
-            tabIndex={0}
-          >
-            {row.projectName}
-          </span>
+          <span className={styles.projectName}>{row.projectName}</span>
           <span className={styles.projectSubtitle}>{row.milestoneName}</span>
         </div>
       ),
@@ -683,7 +746,7 @@ export function PaymentsPage() {
       render: (val: number, row) => (
         <div className={styles.amountDueCell}>
           <span className={styles.amountDueMain}>
-            ₹{val.toLocaleString('en-IN')}
+            ₹{(val || 0).toLocaleString('en-IN')}
           </span>
           <span className={styles.paidSubtitle}>
             Paid: ₹{(row.paidAmount || 0).toLocaleString('en-IN')}
@@ -696,7 +759,9 @@ export function PaymentsPage() {
       header: 'DUE DATE',
       sortable: true,
       minWidth: '130px',
-      render: (val: string) => <span className={styles.dueDateCell}>{val}</span>,
+      render: (val: string) => (
+        <span className={styles.dueDateCell}>{formatDateOnly(val)}</span>
+      ),
     },
     {
       key: 'status',
@@ -708,8 +773,10 @@ export function PaymentsPage() {
             ? styles['badge--partiallyReceived']
             : val === 'Received'
             ? styles['badge--received']
+            : val === 'Overdue'
+            ? styles['badge--overdue']
             : styles['badge--pending'];
-        return <span className={`${styles.milestoneBadge} ${badgeClass}`}>{val}</span>;
+        return <span className={`${styles.milestoneBadge} ${badgeClass || ''}`}>{val}</span>;
       },
     },
     {
@@ -771,23 +838,32 @@ export function PaymentsPage() {
       key: 'date',
       header: 'DATE',
       minWidth: '120px',
+      render: (val: string, row) => <span>{formatDateOnly(val || row.invoiceDate)}</span>,
     },
     {
       key: 'projectName',
       header: 'PROJECT / CUSTOMER',
       minWidth: '220px',
+      render: (val: string, row) => (
+        <div className={styles.projectCell}>
+          <span>{val}</span>
+          {row.customerName && (
+            <span className={styles.projectSubtitle}>{row.customerName}</span>
+          )}
+        </div>
+      ),
     },
     {
       key: 'grossAmount',
       header: 'TAXABLE AMT',
       minWidth: '130px',
-      render: (val: number) => `₹${val.toLocaleString('en-IN')}`,
+      render: (val: number) => `₹${(val || 0).toLocaleString('en-IN')}`,
     },
     {
       key: 'gstAmount',
-      header: 'GST (18%)',
+      header: 'GST',
       minWidth: '110px',
-      render: (val: number) => `₹${val.toLocaleString('en-IN')}`,
+      render: (val: number) => `₹${(val || 0).toLocaleString('en-IN')}`,
     },
     {
       key: 'netAmount',
@@ -795,7 +871,7 @@ export function PaymentsPage() {
       minWidth: '140px',
       render: (val: number) => (
         <span style={{ fontWeight: 700, color: '#16a34a' }}>
-          ₹{val.toLocaleString('en-IN')}
+          ₹{(val || 0).toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -808,9 +884,9 @@ export function PaymentsPage() {
         <span
           className={styles.modeBadge}
           style={{
-            color: val === 'Paid' ? '#16a34a' : '#dc2626',
-            borderColor: val === 'Paid' ? '#bbf7d0' : '#fecaca',
-            backgroundColor: val === 'Paid' ? '#f0fdf4' : '#fef2f2',
+            color: val === 'Paid' ? '#16a34a' : val === 'Cancelled' ? '#64748b' : '#dc2626',
+            borderColor: val === 'Paid' ? '#bbf7d0' : val === 'Cancelled' ? '#cbd5e1' : '#fecaca',
+            backgroundColor: val === 'Paid' ? '#f0fdf4' : val === 'Cancelled' ? '#f8fafc' : '#fef2f2',
           }}
         >
           {val}
@@ -839,7 +915,7 @@ export function PaymentsPage() {
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>Total Outstanding</span>
             <span className={`${styles.metricValue} ${styles['metricValue--dark']}`}>
-              ₹3,65,870
+              ₹{(kpis?.totalOutstanding ?? 0).toLocaleString('en-IN')}
             </span>
           </div>
 
@@ -847,7 +923,7 @@ export function PaymentsPage() {
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>Collections This Month</span>
             <span className={`${styles.metricValue} ${styles['metricValue--green']}`}>
-              ₹66,330
+              ₹{(kpis?.collectionsThisMonth ?? 0).toLocaleString('en-IN')}
             </span>
           </div>
 
@@ -855,7 +931,7 @@ export function PaymentsPage() {
           <div className={styles.metricCard}>
             <span className={styles.metricLabel}>Overdue Receivables</span>
             <span className={`${styles.metricValue} ${styles['metricValue--red']}`}>
-              ₹3,75,870
+              ₹{(kpis?.overdueReceivables ?? 0).toLocaleString('en-IN')}
             </span>
           </div>
         </div>
@@ -864,7 +940,7 @@ export function PaymentsPage() {
         <div className={styles.filterCard}>
           <div className={styles.searchWrap}>
             <SearchInput
-              placeholder="Search Project Name..."
+              placeholder="Search Project or Customer Name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onClear={() => setSearchQuery('')}
@@ -950,7 +1026,8 @@ export function PaymentsPage() {
               data={filteredReceipts}
               rowKey="id"
               bordered={false}
-              emptyText="No payment receipts found matching the selected filters."
+              isLoading={isLoading}
+              emptyText="No payment receipts found."
             />
           )}
 
@@ -960,6 +1037,7 @@ export function PaymentsPage() {
               data={filteredOutstanding}
               rowKey="id"
               bordered={false}
+              isLoading={isLoading}
               emptyText="No outstanding balances found."
             />
           )}
@@ -970,6 +1048,7 @@ export function PaymentsPage() {
               data={filteredSchedules}
               rowKey="id"
               bordered={false}
+              isLoading={isLoading}
               emptyText="No payment milestone schedules found."
             />
           )}
@@ -977,9 +1056,10 @@ export function PaymentsPage() {
           {activeTab === 'Invoices' && (
             <Table
               columns={invoiceColumns}
-              data={invoices}
+              data={filteredInvoices}
               rowKey="id"
               bordered={false}
+              isLoading={isLoading}
               emptyText="No invoices found."
             />
           )}
@@ -1040,6 +1120,7 @@ export function PaymentsPage() {
                       onChange={(e) => setRecordAmount(e.target.value)}
                       placeholder="e.g. 50000"
                       required
+                      min="1"
                     />
                   </div>
 
@@ -1071,10 +1152,9 @@ export function PaymentsPage() {
                   <div className={styles.modalFormField}>
                     <label className={styles.modalFieldLabel}>Payment Date</label>
                     <Input
-                      type="text"
+                      type="date"
                       value={recordDate}
                       onChange={(e) => setRecordDate(e.target.value)}
-                      placeholder="e.g. 22 Sep 2026"
                     />
                   </div>
 
@@ -1083,11 +1163,12 @@ export function PaymentsPage() {
                       type="button"
                       variant="outline"
                       onClick={() => setPaymentModalOpen(false)}
+                      disabled={isSubmitting}
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" variant="primary">
-                      Confirm &amp; Record Payment
+                    <Button type="submit" variant="primary" disabled={isSubmitting}>
+                      {isSubmitting ? 'Recording...' : 'Confirm & Record Payment'}
                     </Button>
                   </div>
                 </form>
@@ -1140,7 +1221,7 @@ export function PaymentsPage() {
                   </div>
                   <div className={styles.modalSummaryItem}>
                     <span className={styles.modalSummaryLabel}>Target Due Date</span>
-                    <span className={styles.modalSummaryValue}>{infoMilestone.dueDate}</span>
+                    <span className={styles.modalSummaryValue}>{formatDateOnly(infoMilestone.dueDate)}</span>
                   </div>
                   <div className={styles.modalSummaryItem}>
                     <span className={styles.modalSummaryLabel}>Current Status</span>
@@ -1167,4 +1248,3 @@ export function PaymentsPage() {
 }
 
 export default PaymentsPage;
-
