@@ -1,0 +1,542 @@
+/* ─── Page Container ───────────────────────────────────────────────────────── */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* ─── Page Title ──────────────────────────────────────────────────────────── */
+.pageTitle {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text-primary, #0f172a);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* ─── KPI Metric Cards Row ────────────────────────────────────────────────── */
+.metricCardsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metricCard {
+  background: var(--color-bg-primary, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metricLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.metricValue {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+
+  &--dark {
+    color: var(--color-text-primary, #0f172a);
+  }
+
+  &--green {
+    color: #16a34a;
+  }
+
+  &--red {
+    color: #dc2626;
+  }
+}
+
+/* ─── Search & Filters Bar Card ───────────────────────────────────────────── */
+.filterCard {
+  background: var(--color-bg-primary, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 14px 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.searchWrap {
+  width: 320px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+
+.filtersGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+
+.filterItem {
+  min-width: 140px;
+
+  @media (max-width: 480px) {
+    min-width: 100%;
+  }
+}
+
+.clearFiltersBtn {
+  font-size: 0.8125rem;
+  color: var(--color-primary-600, #2563eb);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background 150ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--color-primary-500, #3b82f6) 10%, transparent);
+  }
+}
+
+/* ─── Tab Navigation ──────────────────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  padding: 0 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tabBtn {
+  background: none;
+  border: none;
+  padding: 10px 4px 14px 4px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #64748b);
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  transition: color var(--transition-fast, 150ms ease);
+
+  &:hover {
+    color: var(--color-text-primary, #1e293b);
+  }
+
+  &--active {
+    color: var(--color-primary-600, #2563eb);
+    font-weight: 600;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2.5px;
+      background-color: var(--color-primary-600, #2563eb);
+      border-radius: 2px 2px 0 0;
+    }
+  }
+}
+
+/* ─── Content Card / Table Container ──────────────────────────────────────── */
+.contentCard {
+  background: var(--color-bg-primary, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cardHeader {
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid var(--color-border, #f1f5f9);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+  margin: 0;
+}
+
+/* ─── Table Cell Styles ───────────────────────────────────────────────────── */
+.dateLoggedCell {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #475569);
+  font-weight: 500;
+}
+
+.projectCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.projectName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary-600, #2563eb);
+  cursor: pointer;
+  transition: color 150ms ease;
+
+  &:hover {
+    color: var(--color-primary-700, #1d4ed8);
+    text-decoration: underline;
+  }
+}
+
+.projectSubtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.amountCell {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.modeBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: var(--color-bg-secondary, #f1f5f9);
+  color: var(--color-text-primary, #334155);
+  border: 1px solid var(--color-border, #e2e8f0);
+}
+
+.refNoCell {
+  font-size: 0.875rem;
+  color: var(--color-text-tertiary, #94a3b8);
+}
+
+/* ─── Action Buttons in Table ─────────────────────────────────────────────── */
+.actionsCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.whatsappBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  color: #22c55e;
+  border: 1px solid #dcfce7;
+  cursor: pointer;
+  transition: all var(--transition-fast, 150ms ease);
+
+  &:hover {
+    background-color: #dcfce7;
+    color: #15803d;
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.printBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  color: #3b82f6;
+  border: 1px solid #dbeafe;
+  cursor: pointer;
+  transition: all var(--transition-fast, 150ms ease);
+
+  &:hover {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.recordPaymentBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-primary-600, #2563eb);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: var(--color-primary-700, #1d4ed8);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+/* ─── Schedules Table Specific Styles ─────────────────────────────────────── */
+.amountDueCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.amountDueMain {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+}
+
+.paidSubtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #64748b);
+  font-weight: 500;
+}
+
+.dueDateCell {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #334155);
+}
+
+.milestoneBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 14px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge--partiallyReceived {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+.badge--pending {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.badge--received {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.scheduleActionsCell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.infoBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 150ms ease;
+
+  &:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+}
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #ef4444;
+  border: 1px solid #fee2e2;
+  cursor: pointer;
+  transition: all 150ms ease;
+
+  &:hover {
+    background-color: #fef2f2;
+    border-color: #fca5a5;
+    color: #dc2626;
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+/* ─── Record Payment Modal Styles ─────────────────────────────────────────── */
+.modalSummaryBox {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modalSummaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modalSummaryLabel {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.modalSummaryValue {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+
+  &--accent {
+    color: #2563eb;
+  }
+
+  &--due {
+    color: #dc2626;
+  }
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modalFormField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modalFieldLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.modalFooterActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* ─── Outstanding Table Specific Styles ───────────────────────────────────── */
+.totalDueCell {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary, #0f172a);
+}
+
+.receivedCell {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.balanceCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.balanceAmount {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.overdueLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #ef4444;
+}
+
+.inProgressBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+

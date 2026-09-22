@@ -1,0 +1,267 @@
+/* ─── Page Container ───────────────────────────────────────────────────────── */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+/* ─── Page Header Row ─────────────────────────────────────────────────────── */
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pageTitle {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text-primary, #0f172a);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Admin Checkbox Capsule ──────────────────────────────────────────────── */
+.adminToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--color-bg-primary, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #1e293b);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all var(--transition-fast, 150ms ease);
+
+  &:hover {
+    border-color: var(--color-primary-400, #93c5fd);
+    background: var(--color-bg-secondary, #f8fafc);
+  }
+}
+
+.checkboxBox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid var(--color-border-dark, #cbd5e1);
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: all var(--transition-fast, 150ms ease);
+
+  &--checked {
+    background: var(--color-primary-600, #2563eb);
+    border-color: var(--color-primary-600, #2563eb);
+  }
+}
+
+.checkboxInput {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+/* ─── Main Card ───────────────────────────────────────────────────────────── */
+.card {
+  background: var(--color-bg-primary, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Filter Row inside Card ──────────────────────────────────────────────── */
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--color-border, #f1f5f9);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.searchWrap {
+  width: 320px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+
+.filterItem {
+  min-width: 180px;
+
+  @media (max-width: 768px) {
+    min-width: 100%;
+  }
+}
+
+.clearFiltersBtn {
+  font-size: 0.8125rem;
+  color: var(--color-primary-600, #2563eb);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background 150ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--color-primary-500, #3b82f6) 10%, transparent);
+  }
+}
+
+/* ─── Table Specific Cell Stylings ────────────────────────────────────────── */
+.customerNameCell {
+  font-weight: 600;
+  color: var(--color-primary-600, #2563eb);
+  cursor: pointer;
+  transition: color 150ms ease;
+
+  &:hover {
+    color: var(--color-primary-700, #1d4ed8);
+    text-decoration: underline;
+  }
+}
+
+.dateTimeCell {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #475569);
+  font-variant-numeric: tabular-nums;
+}
+
+.assignedTechCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #64748b);
+
+  &--assigned {
+    color: var(--color-text-primary, #1e293b);
+    font-weight: 500;
+  }
+}
+
+.techAvatarIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+}
+
+/* ─── Badges ──────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+
+  &--scheduled {
+    background-color: #e0f2fe;
+    color: #0284c7;
+  }
+
+  &--completed {
+    background-color: #dcfce7;
+    color: #16a34a;
+  }
+
+  &--inProgress {
+    background-color: #fef3c7;
+    color: #d97706;
+  }
+
+  &--cancelled {
+    background-color: #f1f5f9;
+    color: #64748b;
+  }
+}
+
+/* ─── Action Buttons ──────────────────────────────────────────────────────── */
+.actionsCell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.primaryActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-primary-600, #2563eb);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+  transition: all 150ms ease;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: var(--color-primary-700, #1d4ed8);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 6px;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 150ms ease;
+
+  &:hover {
+    background-color: #fee2e2;
+    color: #dc2626;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  svg {
+    display: block;
+  }
+}

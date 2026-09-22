@@ -5,6 +5,9 @@ export const ROUTES = {
   QUOTATIONS: '/quotations',
   CREATE_QUOTATION: '/quotations/new',
   QUOTATION_DETAILS: '/quotations/:id',
+  SURVEYS: '/surveys',
+  SURVEY_DETAILS: '/surveys/:id',
+  PAYMENTS: '/payments',
   USERS: '/users',
   LOGIN: '/login',
   REGISTER: '/register',
@@ -24,6 +27,9 @@ export const PROTECTED_ROUTES = [
   ROUTES.QUOTATIONS,
   ROUTES.CREATE_QUOTATION,
   ROUTES.QUOTATION_DETAILS,
+  ROUTES.SURVEYS,
+  ROUTES.SURVEY_DETAILS,
+  ROUTES.PAYMENTS,
   ROUTES.USERS,
 ] as const;
 

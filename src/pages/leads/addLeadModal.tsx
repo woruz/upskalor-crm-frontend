@@ -61,6 +61,7 @@ const LEAD_STATUS_OPTIONS: { label: string; value: LeadStatus }[] = [
   { label: 'Contacted', value: 'CONTACTED' },
   { label: 'Follow Up', value: 'FOLLOW_UP' },
   { label: 'Interested', value: 'INTERESTED' },
+  { label: 'Survey Scheduled', value: 'SURVEY_SCHEDULED' },
   { label: 'Not Interested', value: 'NOT_INTERESTED' },
   { label: 'Converted', value: 'CONVERTED' },
   { label: 'Lost', value: 'LOST' },

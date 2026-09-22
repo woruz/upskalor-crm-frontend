@@ -7,9 +7,9 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-  isLoggedIn: false,
-  token: null,
-  refreshToken: null,
+  isLoggedIn: true,
+  token: 'mock-dev-token',
+  refreshToken: 'mock-dev-refresh-token',
 };
 
 const authSlice = createSlice({
