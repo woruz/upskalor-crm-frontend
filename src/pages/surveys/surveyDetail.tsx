@@ -16,7 +16,6 @@ import {
   uploadSurveyPhoto,
   deleteSurveyPhoto,
 } from '@/shared/lib/api/surveysApi';
-import { extractApiError } from '@/shared/lib/api/authApi';
 import type { SurveyStatus, ShadingOption, ConnectionType, UpdateSurveyPayload } from '@/shared/lib/types';
 import styles from './surveyDetail.module.scss';
 
@@ -684,8 +683,8 @@ export function SurveyDetailPage() {
 
             {/* Save Action */}
             <div className={styles.saveActionRow}>
-              <button type="submit" className={styles.saveBtn}>
-                Save Technical Specs
+              <button type="submit" className={styles.saveBtn} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Technical Specs'}
               </button>
             </div>
           </div>
