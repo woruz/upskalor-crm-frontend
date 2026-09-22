@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 import { AppLayout } from '@/shared/components/ui/appLayout/appLayout';
 import { Input, SearchInput } from '@/shared/components/ui/input';
 import { Dropdown } from '@/shared/components/ui/dropdown';
@@ -181,7 +181,6 @@ const SORT_OPTIONS = [
 type ActiveTab = 'Outstanding' | 'Schedules' | 'Receipt History' | 'Invoices';
 
 export function PaymentsPage() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { addToast } = useToast();
