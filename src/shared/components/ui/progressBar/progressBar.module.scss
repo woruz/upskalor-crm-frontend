@@ -1,0 +1,14 @@
+.progressTrack {
+  width: 100%;
+  background-color: var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-full, 9999px);
+  overflow: hidden;
+  position: relative;
+}
+
+.progressBar {
+  height: 100%;
+  background-color: var(--color-primary-600, #2563eb);
+  border-radius: var(--radius-full, 9999px);
+  transition: width 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}

@@ -37,6 +37,21 @@ const PaymentsPage = lazy(() =>
     default: m.PaymentsPage,
   })),
 );
+const ProjectsPage = lazy(() =>
+  import('@/pages/projects/projects').then((m) => ({
+    default: m.ProjectsPage,
+  })),
+);
+const ProjectDetailPage = lazy(() =>
+  import('@/pages/projects/projectDetail').then((m) => ({
+    default: m.ProjectDetailPage,
+  })),
+);
+const AfterSalesPage = lazy(() =>
+  import('@/pages/afterSales/afterSales').then((m) => ({
+    default: m.AfterSalesPage,
+  })),
+);
 const UserManagementPage = lazy(() =>
   import('@/pages/users/userManagement').then((m) => ({
     default: m.UserManagementPage,
@@ -150,6 +165,46 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Navigate to={ROUTES.PAYMENTS} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.PROJECTS}
+            element={
+              <ProtectedRoute>
+                <ProjectsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.PROJECT_DETAILS}
+            element={
+              <ProtectedRoute>
+                <ProjectDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.INSTALLATION_PIPELINE}
+            element={
+              <ProtectedRoute>
+                <ProjectsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pipeline"
+            element={
+              <ProtectedRoute>
+                <Navigate to={ROUTES.PROJECTS} replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.AFTER_SALES}
+            element={
+              <ProtectedRoute>
+                <AfterSalesPage />
               </ProtectedRoute>
             }
           />

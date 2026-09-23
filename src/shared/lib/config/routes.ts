@@ -13,6 +13,10 @@ export const ROUTES = {
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
   DASHBOARD: '/dashboard',
+  PROJECTS: '/projects',
+  PROJECT_DETAILS: '/projects/:id',
+  INSTALLATION_PIPELINE: '/installation-pipeline',
+  AFTER_SALES: '/after-sales',
   PROFILE: '/profile',
   SETTINGS: '/settings',
 } as const;
@@ -22,6 +26,9 @@ export const PUBLIC_ROUTES = [ROUTES.HOME] as const;
 
 export const PROTECTED_ROUTES = [
   ROUTES.DASHBOARD,
+  ROUTES.PROJECTS,
+  ROUTES.PROJECT_DETAILS,
+  ROUTES.AFTER_SALES,
   ROUTES.LEADS,
   ROUTES.LEAD_DETAILS,
   ROUTES.QUOTATIONS,
